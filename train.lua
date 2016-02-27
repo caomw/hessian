@@ -2,11 +2,14 @@ require 'nn'
 require 'optim'
 
 local opt = [[
+    -save  (default "logs")            subdirectory to save logs
     -m,--model  (default "cnn_mnist")  type of model for train: convnet|
     -c,--cuda (default false)          if true cuda enabled
     -l,--learningRate (default 0.05)   learning rate 
     -w,--weightDecay (default 0.0005) weight decay
     -b,--batchSize  (default 10)       batch size
+    --saveInterval  (default 10)       save models per n epoch
+    --max_epoch     (default 300)      maximum number of iterations
 ]]
 
 --fix seed
@@ -112,11 +115,21 @@ function test()
     confusion:updateValids()
     print('Test accuracy:', confusion.totalValid * 100)
 
-    -- save model every 50 epochs
-    if epoch % 50 == 0 then
-        local filename = paths.concat(opt.save, 'model.net')
+    -- save model every [saveInterval] epochs
+    if epoch % opt.saveInterval == 0 then
+        local filename = paths.concat(opt.save, 'model_' .. epoch)
         print('==> saving model to '..filename)
-        torch.save(filename, model:get(3):clearState())
+        torch.save(filename, model:clearState())
     end
+
+    confusion:zero()
 end
+
+
+
+for i = 1, opt.max_epoch do
+    train()
+    test()
+end
+
 

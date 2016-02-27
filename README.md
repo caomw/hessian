@@ -1,4 +1,4 @@
-# hessian
+#hessian
 Experiments on computationally efficient algorithm for non-convex optimization
 
 Log:
@@ -13,4 +13,5 @@ Log:
 
 2016/02/24: 00:30  Read the source code of confusion matrix.  
 
-
+2016/02/26: 00:15  Finished train.lua 
+            00:40  Started provider.lua. Read the source code for dataloading( mnist, cifar10 )
