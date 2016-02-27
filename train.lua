@@ -1,8 +1,11 @@
 require 'nn'
 require 'optim'
+dofile './provider.lua'
+
 
 local opt = [[
     -save  (default "logs")            subdirectory to save logs
+    -dataset (default "mnist")         which dataset to use
     -m,--model  (default "cnn_mnist")  type of model for train: convnet|
     -c,--cuda (default false)          if true cuda enabled
     -l,--learningRate (default 0.05)   learning rate 
@@ -27,7 +30,15 @@ model:add(nn.LogSoftMax())
 criterion = nn.ClassNLLCriterion()
 
 --load dataset 
-dataset = 
+print(c.blue '==>' ..' loading data')
+if opt.dataset == 'cifar' then 
+    provider = torch.load 'provider.t7'
+    provider.trainData.data = provider.trainData.data:float()
+    provider.testData.data = provider.testData.data:float()
+elseif opt.dataset == 'mnist' then
+    provider = torch.load ''
+    provider.trainData.data = provider.trainData.data:
+end
 
 --obtain storage for parameters 
 parameters, gradParameters = model:getParameters()

@@ -2,47 +2,57 @@ require 'nn'
 --require 'image'
 --require 'xlua'
 
+local opt = [[
+    -dataset (default "mnist")    which dataset to prepare
+]]
+
 local Provider = torch.class 'Provider'
 
 function Provider:__init(full)
-  local trsize = 50000
-  local tesize = 10000
 
-  -- load dataset
-  self.trainData = {
-     data = torch.Tensor(50000, 3072),
-     labels = torch.Tensor(50000),
-     size = function() return trsize end
-  }
+  if opt.dataset == 'cifar' then
+    local trsize = 50000
+    local tesize = 10000
+    local vecsize = 3072
 
-  local trainData = self.trainData
-  for i = 0,4 do
-     local subset = torch.load('../data/cifar-10-batches-t7/data_batch_' .. (i+1) .. '.t7', 'ascii')
-     trainData.data[{ {i*10000+1, (i+1)*10000} }] = subset.data:t()
-     trainData.labels[{ {i*10000+1, (i+1)*10000} }] = subset.labels
-  end
-  -- labels starts from 0, so makes it 1 to 10 instead of 0 to 9
-  trainData.labels = trainData.labels + 1
+    -- load dataset
+    self.trainData = {
+       data = torch.Tensor(trsize, 3072),
+       labels = torch.Tensor(50000),
+       size = function() return trsize end
+    }
 
-  local subset = torch.load('cifar-10-batches-t7/test_batch.t7', 'ascii')
-  self.testData = {
-     data = subset.data:t():double(),
-     labels = subset.labels[1]:double(),
-     size = function() return tesize end
-  }
-  local testData = self.testData
-  testData.labels = testData.labels + 1
+    local trainData = self.trainData
+    for i = 0,4 do
+       local subset = torch.load('../data/cifar-10-batches-t7/data_batch_' .. (i+1) .. '.t7', 'ascii')
+       trainData.data[{ {i*10000+1, (i+1)*10000} }] = subset.data:t()
+       trainData.labels[{ {i*10000+1, (i+1)*10000} }] = subset.labels
+    end
+    -- labels starts from 0, so makes it 1 to 10 instead of 0 to 9
+    trainData.labels = trainData.labels + 1
+
+    local subset = torch.load('../data/cifar-10-batches-t7/test_batch.t7', 'ascii')
+    self.testData = {
+       data = subset.data:t():double(),
+       labels = subset.labels[1]:double(),
+       size = function() return tesize end
+    }
+    local testData = self.testData
+    testData.labels = testData.labels + 1
  
-  -- resize dataset (if using small version)
-  trainData.data = trainData.data[{ {1,trsize} }]
-  trainData.labels = trainData.labels[{ {1,trsize} }]
+    -- resize dataset (if using small version)
+    trainData.data = trainData.data[{ {1,trsize} }]
+    trainData.labels = trainData.labels[{ {1,trsize} }]
 
-  testData.data = testData.data[{ {1,tesize} }]
-  testData.labels = testData.labels[{ {1,tesize} }]
+    testData.data = testData.data[{ {1,tesize} }]
+    testData.labels = testData.labels[{ {1,tesize} }]
 
-  -- reshape data
-  trainData.data = trainData.data:reshape(trsize,3,32,32)
-  testData.data = testData.data:reshape(tesize,3,32,32)
+    -- reshape data
+    trainData.data = trainData.data:reshape(trsize,3,32,32)
+    testData.data = testData.data:reshape(tesize,3,32,32)
+  elseif opt.dataset == 'mnist' then
+    local f = torch.load('../data/mnist.t7/train_32x32.t7', 'ascii')
+
 end
 
 
