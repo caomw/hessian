@@ -10,3 +10,7 @@ Log:
 2016/02/22: 05:00  Read the source code of cifar, mnist, cifar(92.4%) to develop my train() function. Read optim. Read oxford pratical4. Watch this https://www.youtube.com/watch?v=NUKp0c4xb8w. Start writing train().   
 
 2016/02/23: 01:30  Read the source code of cifar, mnist, cifar(92.4%). Continue my train()
+
+2016/02/24: 00:30  Read the source code of confusion matrix.  
+
+

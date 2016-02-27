@@ -42,7 +42,6 @@ but the second call is looking at the second element in the sequence of random n
 > torch.norm(cparam[2]:view(cparam[2]:nElement()))
 
 -how to time : 
-
 ```{python}
  local tic = torch.tic()
  [some job]
@@ -96,11 +95,42 @@ Performs a matrix-matrix multiplication between mat1 (2D Tensor) and mat2 (2D Te
 
 -Found out ipairs is an iterator function for Lua. Usage:
 ```{python}
-for i, ver in pairs(t) do   # t has to be a table; index starts from 1!!
+for i, ver in ipairs(t) do   # t has to be a table; index starts from 1!!
     print(ver)
 end
 ```
 
+
+
+#2016/2/24
+
+***Today's tips:***
+
+-How to use :split()
+```{python}
+a = torch.LongTensor({4,5,2,1,7}):split(3) 
+# will make  a table 
+# such that {torch.LongTensor({4,5,2}), torch.LongTensor({1,7})} in a
+```
+
+
+-How to use :select()
+```{python}
+# if mat is a 2D matrix
+mat:select(1, t) # selects t th row of the matrix.
+mat:select(2, t) # selects t th column of the matrix. 
+```
+
+- Read the source code of confusion matrix. 
+```{python}
+self.valids[t] = self.mat[t][t] / self.mat:select(1,t):sum()
+# the last part is summing up the t th row of the matrix. So this calculates the t th class accuracy and put it in self.valids[t].
+
+self.unionvalids[t] = self.mat[t][t] / (self.mat:select(1,t):sum()+self.mat:select(2,t):sum()-self.mat[t][t])
+# the last part is summing up the t th row and t th column. 
+```
+
+- The stuff that appears when you print confusion matrix is written here : function ConfusionMatrix:__tostring__()
 
 
 
