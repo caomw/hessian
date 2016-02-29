@@ -17,4 +17,4 @@ Log:
             00:40  Started provider.lua. Read the source code for dataloading( mnist, cifar10 )
             01:00  Developed data loading script. Investigated data format in mnist, cifar.
 
-2016/02/29: 
+2016/02/29: 01:00  Ran an experiment on how the gradient will change for mnist training (2000 size instead of 10000)

@@ -182,5 +182,16 @@ testDataCifar.labels:size() # cifar
 -What does momentum do...?
 
 
+#2016/2/29
+
+- gradParameters : stored as [torch.DoubleTensor of size 12]
+-
+- norm_gradParam's x-axis is the number of minibatches so far   
+- torch.save("norm_gradParam.bin", norm_gradParam)
+
+- changed the path of mnist dataset in dataset-mnist.lua `mnist.path_dataset = 'mnist.t7'` to `mnist.path_dataset = '../../data/mnist.t7'` 
 
 
+- Ran an experiment to get the feel of how the norm of gradient (gradParams) change over the course of training. 
+
+- Things to do next: Plot the gradParams.bin!
