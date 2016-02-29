@@ -142,6 +142,10 @@ self.unionvalids[t] = self.mat[t][t] / (self.mat:select(1,t):sum()+self.mat:sele
 
 #2016/2/26
 
+- I attempted to create an original training script that integrates everything (mnist, cifar, etc), but it's taking a lot of time, so I'm just going to use the pre-developed script from now to get the result. 
+-
+- The original script is train.lua. Pre-developed scripts will be located in mnist_experiment and cifar_experiment folder. 
+
 -There is a difference in how data is stored in an original state:
 ```{python}
 testData = torch.load('test_32x32.t7', 'ascii') # this is loading mnist test data

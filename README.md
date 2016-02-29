@@ -16,3 +16,5 @@ Log:
 2016/02/26: 00:15  Finished train.lua 
             00:40  Started provider.lua. Read the source code for dataloading( mnist, cifar10 )
             01:00  Developed data loading script. Investigated data format in mnist, cifar.
+
+2016/02/29: 
