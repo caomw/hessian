@@ -195,3 +195,10 @@ testDataCifar.labels:size() # cifar
 - Ran an experiment to get the feel of how the norm of gradient (gradParams) change over the course of training. 
 
 - Things to do next: Plot the gradParams.bin!
+
+
+#2016/3/10
+
+- From the look of the plot (test.png), I set the threshold to switch from SGD to Hessian to be 0.01
+
+
