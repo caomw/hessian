@@ -44,7 +44,7 @@ but the second call is looking at the second element in the sequence of random n
 
 - how to time : 
 
-```{python}
+```
  local tic = torch.tic()
  [some job]
  torch.toc(tic) # this will produce the time difference between tic and now
@@ -54,7 +54,7 @@ but the second call is looking at the second element in the sequence of random n
 
 > If torch.add(tensor1, tensor2)
 
-```{python}
+```
 a:add(b) # accumulates all elements of b into a.
 torch.add(y, a, b) puts a + b in y.
 y:add(a, b) puts a + b in y.
@@ -63,7 +63,7 @@ y = torch.add(a, b) returns a new Tensor.
 
 > If torch.add(tensor1, value, tensor2)
 
-```{python}
+```
 x:add(value, y) multiply-accumulates values of y into x.
 z:add(x, value, y) puts the result of x + value * y in z.
 torch.add(x, value, y) returns a new Tensor x + value * y.
@@ -72,7 +72,7 @@ torch.add(z, x, value, y) puts the result of x + value * y in z
 
 > If torch.add(tensor, value)
 
-```{python}
+```
 Add the given value to all elements in the Tensor.
 y = torch.add(x, value) returns a new Tensor.
 x:add(value) add value to all elements in place.
@@ -80,7 +80,7 @@ x:add(value) add value to all elements in place.
 
 - How to use variations of :add() such as :addmv(), :addr(), :addmm()
 
-```{python}
+```
 torch.addmv(vec1, mat, vec2)
 Performs a matrix-vector multiplication between mat (2D Tensor) and vec2 (1D Tensor) and add it to vec1
 
@@ -98,7 +98,7 @@ Performs a matrix-matrix multiplication between mat1 (2D Tensor) and mat2 (2D Te
 
 - Found out ipairs is an iterator function for Lua. Usage:
 
-```{python}
+```
 for i, ver in ipairs(t) do   # t has to be a table; index starts from 1!!
     print(ver)
 end
@@ -112,7 +112,7 @@ end
 
 - How to use :split()
 
-```{python}
+```
 a = torch.LongTensor({4,5,2,1,7}):split(3) 
 # will make  a table 
 # such that {torch.LongTensor({4,5,2}), torch.LongTensor({1,7})} in a
@@ -121,7 +121,7 @@ a = torch.LongTensor({4,5,2,1,7}):split(3)
 
 - How to use :select()
 
-```{python}
+```
 # if mat is a 2D matrix
 mat:select(1, t) # selects t th row of the matrix.
 mat:select(2, t) # selects t th column of the matrix. 
@@ -129,7 +129,7 @@ mat:select(2, t) # selects t th column of the matrix.
 
 - Read the source code of confusion matrix.
 
-```{python}
+```
 self.valids[t] = self.mat[t][t] / self.mat:select(1,t):sum()
 # the last part is summing up the t th row of the matrix. So this calculates the t th class accuracy and put it in self.valids[t].
 
@@ -143,11 +143,11 @@ self.unionvalids[t] = self.mat[t][t] / (self.mat:select(1,t):sum()+self.mat:sele
 #2016/2/26
 
 - I attempted to create an original training script that integrates everything (mnist, cifar, etc), but it's taking a lot of time, so I'm just going to use the pre-developed script from now to get the result. 
--
+
 - The original script is train.lua. Pre-developed scripts will be located in mnist_experiment and cifar_experiment folder. 
 
 -There is a difference in how data is stored in an original state:
-```{python}
+```
 testData = torch.load('test_32x32.t7', 'ascii') # this is loading mnist test data
 
 testData.data:size()
@@ -155,7 +155,7 @@ testData.data:size()
 # 1
 # 32
 # 32
-# [torch.LongStorage of size 4]
+#o [torch.LongStorage of size 4]
 
 testDataCifar = torch.load('../cifar-10-batches-t7/test_batch.t7', 'ascii')
 testDataCifar.data:size()
@@ -165,7 +165,7 @@ testDataCifar.data:size()
 ```
 
 For labels, 
-```{python}
+```
 testData.labels:size() # mnist
 # 10000
 # [torch.LongStorage of size 1]
@@ -185,7 +185,7 @@ testDataCifar.labels:size() # cifar
 #2016/2/29
 
 - gradParameters : stored as [torch.DoubleTensor of size 12]
--
+
 - norm_gradParam's x-axis is the number of minibatches so far   
 - torch.save("norm_gradParam.bin", norm_gradParam)
 
@@ -201,4 +201,49 @@ testDataCifar.labels:size() # cifar
 
 - From the look of the plot (test.png), I set the threshold to switch from SGD to Hessian to be 0.01
 
+- To do next: Incorporate power iteration to this mnist train script. 
+              Modify /mnist-experiment/plot_table.lua to have another option cmd so that it will automatically save an image to src/image/ directory. 
+              Also move this script to src/ from src/mnist-experiment/
+             
+#2016/3/12
 
+- Dealing with gnuplot. Saving plots to files (https://github.com/torch/gnuplot/blob/master/doc/file.md)
+
+>    Any of the above plotting utilities can also be used for directly plotting into eps or png files, or pdf files if your gnuplot installation allows. A final gnuplot.plotflush() command ensures that all output is written to the file properly.
+
+- require 'paths'  is important when you want make your life easier; it handles the path stuff when saveing stuff to files
+
+```
+local filename = paths.concat(opt.save, 'mnist.net')
+
+
+# filename is now '/current/path/opt.save/mnist.net)
+```
+
+#2016/3/13 
+
+- Change the file directory structure according to http://5hun.github.io/quickguide_ja/
+
+- changed the path of mnist dataset in dataset-mnist.lua from mnist.path_dataset = '../../data/mnist.t7' to mnist.path_dataset = '../data/mnist.t7' because I changed the location of dataset-mnist.lua from src/mnist-experiment/ to src/ (and I deleted mnist-experiment folder according to the above new directory structure)
+
+- changed the path of mnist dataset again, because it seems ./runall.sh can't find the right path for the data. Need to investigate more. 
+- (from '../data/mnist.t7' to '/Users/yutaro/Research/spring2016/Hessian/data/mnist.t7'
+
+
+- To do next: I had to change the path for dataset to absolute path (in train_mnist.lua and dataset-mnist.lua. This should be relative for the future use.
+  To do next: Make summerize.sh so that I can get a plot for grad_normal.bin easily. 
+
+
+- Made runall.sh and summerize.sh in 
+
+- In order to run train_mnist.lua etc,.. I added /Users/yutaro/Research/spring2016/Hessian/src to PATH by export PATH=/Users/yutaro/Research/spring2016/Hessian/src:${PATH}
+
+- Added path_remove, path_append, path_prepend command to .bash_profile
+
+- Needed to install brew install coreutils in order to use "greadlink -f" command in shell script (./runall.sh) This is for getting current directory in shell script.
+
+- dofile(file_name) can do  dofile some_string + 'dataset-mnist.lua' , where file_name = some_string + dataset-mnist.lua
+
+- Done with runall.sh. 
+
+- After all, I deleted mnist-experiment folder. It's now in results/2016-02-29. The same result is replicated by runall.sh in results/2016-03-12/output-2016-03-14-03:16:41

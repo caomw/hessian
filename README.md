@@ -18,3 +18,10 @@ Log:
             01:00  Developed data loading script. Investigated data format in mnist, cifar.
 
 2016/02/29: 01:00  Ran an experiment on how the gradient will change for mnist training (2000 size instead of 10000)
+
+2016/03/12: 00:40  Learned plotting function (gnuplot) and paths library (Filename Manipulation Package)
+            01:00  Learned folder directory management in computational experiments
+
+2016/03/13: 02:00  Wrote runall.sh file to manage an experiment in one run of a script. 
+            00:00   
+
