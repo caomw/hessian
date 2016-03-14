@@ -25,4 +25,8 @@ Log:
 2016/03/13: 02:00  Started writing runall.sh file to manage an experiment in one run of a script. 
             03:00  Continued to develop runall.sh. 
 
+2016/03/14: 02:00  Confirmed gradParameters are collected at every mini batch. As the mini-batchsize increases, the norm of gradParameters will be smoother.
+                   Developed runall.sh so that it will automatically move itself to the output folder. 
+
+
 

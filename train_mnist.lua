@@ -238,7 +238,10 @@ function train(dataset)
             confusion:add(outputs[i], targets[i])
          end
 
-         minibatch_norm_gradParam = minibatch_norm_gradParam + torch.norm(gradParameters)
+         --minibatch_norm_gradParam = minibatch_norm_gradParam + torch.norm(gradParameters)
+         minibatch_norm_gradParam = torch.norm(gradParameters)
+         print("size of gradParameteres  ")
+         print(gradParameters:size())
 
          --if torch.norm(gradParameters) < 0.01 then
          --    eigenVectors = powerIterate()    -- inputs are supposed to be the actual parameters, not gradParameters. 
@@ -283,8 +286,8 @@ function train(dataset)
          error('unknown optimization method')
       end
 
-      norm_gradParam[#norm_gradParam + 1] = minibatch_norm_gradParam/opt.batchSize
-      minibatch_norm_gradParam = 0
+      norm_gradParam[#norm_gradParam + 1] = minibatch_norm_gradParam --accumulated every minibatch
+      minibatch_norm_gradParam = 0  
    end
    
    -- time taken

@@ -29,7 +29,7 @@ gnuplot.pngfigure(filename)
 a = torch.load(args.input)
 
 gnuplot.plot({
-   torch.Tensor(a), '-'
+   torch.Tensor(a), '+'
 })
 
 gnuplot.plotflush()

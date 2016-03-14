@@ -247,3 +247,31 @@ local filename = paths.concat(opt.save, 'mnist.net')
 - Done with runall.sh. 
 
 - After all, I deleted mnist-experiment folder. It's now in results/2016-02-29. The same result is replicated by runall.sh in results/2016-03-12/output-2016-03-14-03:16:41
+
+
+- Plot: Since this is batchsize 10, maxEpoch = 20, so 1 epoch 200 (2000 data samples / 10 = 200) so 20 * 200 = 4000 (the values x-axis)
+  So the gradParam is collected every minibatch. 
+
+![plot for norm_gradParam](../results/2016-03-13/output-2016-03-14-05:43:32/img/plot-2016-03-14-05:45:01.png) 
+
+
+- To do next: Start incorporating powermethod into train-mnist.lua
+
+- I ran train_mnist with norm_gradParam[#norm_gradParam + 1] = minibatch_norm_gradParam instead of norm_gradParam[#norm_gradParam + 1] = minibatch_norm_gradParam/opt.batchSize  [2016/03/14] because it seems that dividing is not necessary...?
+
+
+*Note*
+- results/2016-03-14/output-2016-03-14-14:13:56 and output-2016-03-14-14:17:37 tells us that:
+
+-  105506, which is the size of gradParameters, is mini-batchsize-invariant. Because it depends on the network architecture. What's dependent on the mini-batchsize is the norm of gradParams. Indeed, see the next pictures.
+
+![/Users/yutaro/Research/spring2016/Hessian/results/2016-03-14/output-2016-03-14-15:36:33/img/plot-2016-03-14-15:36:43.png](../results/2016-03-14/output-2016-03-14-15:36:33/img/plot-2016-03-14-15:36:43.png) 
+
+- batchsize 1, maxEpoch 1, training samples 2000 (x-axis: 2000 / 1)
+
+![/Users/yutaro/Research/spring2016/Hessian/results/2016-03-14/output-2016-03-14-15:43:19/img/plot-2016-03-14-15:43:25.png](../results/2016-03-14/output-2016-03-14-15:43:19/img/plot-2016-03-14-15:43:25.png)
+
+- batchsize 10, maxEpoch 1, training samples 2000 (x-axis: 2000/10)
+
+
+
