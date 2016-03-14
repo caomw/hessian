@@ -22,6 +22,7 @@ Log:
 2016/03/12: 00:40  Learned plotting function (gnuplot) and paths library (Filename Manipulation Package)
             01:00  Learned folder directory management in computational experiments
 
-2016/03/13: 02:00  Wrote runall.sh file to manage an experiment in one run of a script. 
-            00:00   
+2016/03/13: 02:00  Started writing runall.sh file to manage an experiment in one run of a script. 
+            03:00  Continued to develop runall.sh. 
+
 
