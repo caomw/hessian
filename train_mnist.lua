@@ -239,12 +239,10 @@ function train(dataset)
          end
 
          --minibatch_norm_gradParam = minibatch_norm_gradParam + torch.norm(gradParameters)
-         minibatch_norm_gradParam = torch.norm(gradParameters)
-         print("size of gradParameteres  ")
-         print(gradParameters:size())
+         minibatch_norm_gradParam = torch.norm(gradParameters) 
 
-         --if torch.norm(gradParameters) < 0.01 then
-         --    eigenVectors = powerIterate()    -- inputs are supposed to be the actual parameters, not gradParameters. 
+         --if torch.norm(gradParameters) < 0.1 then
+         --    eigenVectors = HessianPowerIterate() -- inputs are supposed to be the actual parameters, not gradParameters. 
          --    parameterUpdate() -- parameters = parameters + stepSize * eigenVectors 
              -- until when? Should I track for 
          --end

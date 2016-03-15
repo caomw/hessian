@@ -27,6 +27,7 @@ Log:
 
 2016/03/14: 02:00  Confirmed gradParameters are collected at every mini batch. As the mini-batchsize increases, the norm of gradParameters will be smoother.
                    Developed runall.sh so that it will automatically move itself to the output folder. 
+            01:00  Determined the threshold as 0.5
 
 
 

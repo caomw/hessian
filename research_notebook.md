@@ -259,6 +259,7 @@ local filename = paths.concat(opt.save, 'mnist.net')
 
 - I ran train_mnist with norm_gradParam[#norm_gradParam + 1] = minibatch_norm_gradParam instead of norm_gradParam[#norm_gradParam + 1] = minibatch_norm_gradParam/opt.batchSize  [2016/03/14] because it seems that dividing is not necessary...?
 
+#2016-03-14
 
 *Note*
 - results/2016-03-14/output-2016-03-14-14:13:56 and output-2016-03-14-14:17:37 tells us that:
@@ -274,4 +275,16 @@ local filename = paths.concat(opt.save, 'mnist.net')
 - batchsize 10, maxEpoch 1, training samples 2000 (x-axis: 2000/10)
 
 
+need to confirm if norm gradParam needs to be divided by minibatch size. 
 
+-> gradParameters do not need to be divided by minibatch size because it doesn't have to do anything with it. (increasing minibatch just smoothes out the bumpy change per each examples.
+
+
+
+***Threshold for mnist***
+
+- Looking at the plot below and results/2016-03-14/output-2016-03-14-20:07:25/log/test.log, I decided to use 0.5; the loss in test.log starts to stay the same after 15 epochs out of 40 epoches, which roughly corresponds to (3000/8000) area in the plot below, where I took the y-axis value for this area. 
+
+- Therefore, the Hessian experiment, what we want to see is the improvement after this point. 
+
+![](../results/2016-03-14/output-2016-03-14-20:07:25/img/plot-2016-03-14-20:10:10.png)
