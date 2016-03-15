@@ -7,7 +7,7 @@ function powermethod(A, b, eps, maxiter) -- either eps or iter is used
         b = temp / norm
         print(norm)
     end
-    return norm --this norm converges to the dominant eigenvalue 
+    return b, norm --this norm converges to the dominant eigenvalue 
 end
 
 

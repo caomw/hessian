@@ -23,6 +23,7 @@ require 'image'
 require 'pl'
 require 'paths'
 
+
 ----------------------------------------------------------------------
 -- parse command-line options
 --
@@ -46,8 +47,11 @@ local opt = lapp[[
 
 
 local dataset_filepath =  opt.currentDir .. '/dataset-mnist.lua' 
-print(dataset_filepath)
+--print(dataset_filepath)
 dofile(dataset_filepath)
+
+local hessian_filepath = opt.currentDir .. '/test/hessianPowermethod.lua'
+dofile(hessian_filepath)
 
 -- fix seed
 torch.manualSeed(1)
@@ -241,11 +245,20 @@ function train(dataset)
          --minibatch_norm_gradParam = minibatch_norm_gradParam + torch.norm(gradParameters)
          minibatch_norm_gradParam = torch.norm(gradParameters) 
 
-         --if torch.norm(gradParameters) < 0.1 then
-         --    eigenVectors = HessianPowerIterate() -- inputs are supposed to be the actual parameters, not gradParameters. 
-         --    parameterUpdate() -- parameters = parameters + stepSize * eigenVectors 
-             -- until when? Should I track for 
-         --end
+         if torch.norm(gradParameters) < 0.5 then
+             eigenVec, eigenVal = hessianPowermethod(inputs,targets,parameters:clone(),gradParameters:clone(),10e-3,opt.currentDir)
+             --parameterUpdate() -- parameters = parameters + stepSize * eigenVectors 
+             --if eigenVal > 0 then
+
+             --parameters = parameters + eigenVec * stepSize
+             print("eigenvalue")
+             print(eigenVal)
+             --print("eigenvalue")
+             --print(eigenVec)
+             --torch.save("eigenVec_10-8.bin",eigenVec)
+             os.exit()
+         end
+         
 
          -- return f and df/dX
          return f,gradParameters

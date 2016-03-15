@@ -288,3 +288,20 @@ need to confirm if norm gradParam needs to be divided by minibatch size.
 - Therefore, the Hessian experiment, what we want to see is the improvement after this point. 
 
 ![](../results/2016-03-14/output-2016-03-14-20:07:25/img/plot-2016-03-14-20:10:10.png)
+
+
+***Implementation Notes for Powermethod incorporation***
+
+- Need to check the parameters / model:parameters() / model:getParameters() things. Where to overwirte, etc. 
+- How to Make sure that model:backward is done with the updated parameters (= original parameters + eps) ? 
+
+
+- How to load model :
+
+```
+model:add(dofile('models/'..opt.model..'.lua'):cuda())
+```
+
+#2016-03-15
+
+- Did the sanity check for hessianPowermethod.lua. Looks good.  torch.cdiv(Hd, d) will yield the same constant eigenvalue.
