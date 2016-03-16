@@ -43,6 +43,7 @@ local opt = lapp[[
    -t,--threads       (default 4)           number of threads
    -e,--maxEpoch      (default 50)          maximum number of epochs to run
    -c,--currentDir    (default "foo")          current directory that is executed this script
+   -g,--gradnormThresh (default 0.5)        threshold of grad norm to switch from gradient descent to hessian
 ]]
 
 
@@ -50,8 +51,10 @@ local dataset_filepath =  opt.currentDir .. '/dataset-mnist.lua'
 --print(dataset_filepath)
 dofile(dataset_filepath)
 
-local hessian_filepath = opt.currentDir .. '/test/hessianPowermethod.lua'
+local hessian_filepath = opt.currentDir .. '/helperFunctions.lua'
 dofile(hessian_filepath)
+--local hessian2_filepath = opt.currentDir .. '/test/negativePowermethod.lua'
+--dofile(hessian2_filepath)
 
 -- fix seed
 torch.manualSeed(1)
@@ -176,6 +179,9 @@ minibatch_norm_gradParam = 0
 trainLogger = optim.Logger(paths.concat(opt.save, 'train.log'))
 testLogger = optim.Logger(paths.concat(opt.save, 'test.log'))
 
+cost_before_acc = {}
+cost_after_acc = {}
+
 -- training function
 function train(dataset)
    -- epoch tracker
@@ -219,6 +225,8 @@ function train(dataset)
          -- evaluate function for complete mini batch
          local outputs = model:forward(inputs)
          local f = criterion:forward(outputs, targets)
+         --print("cost in general")
+         
 
          -- estimate df/dW
          local df_do = criterion:backward(outputs, targets)
@@ -245,18 +253,42 @@ function train(dataset)
          --minibatch_norm_gradParam = minibatch_norm_gradParam + torch.norm(gradParameters)
          minibatch_norm_gradParam = torch.norm(gradParameters) 
 
-         if torch.norm(gradParameters) < 0.5 then
+         local clock = os.clock
+         function sleep(n)  -- seconds
+               local t0 = clock()
+               while clock() - t0 <= n do end
+         end
+
+         if torch.norm(gradParameters) < opt.gradnormThresh then
              eigenVec, eigenVal = hessianPowermethod(inputs,targets,parameters:clone(),gradParameters:clone(),10e-3,opt.currentDir)
              --parameterUpdate() -- parameters = parameters + stepSize * eigenVectors 
+             stepSize = opt.learningRate * 5
              --if eigenVal > 0 then
-
-             --parameters = parameters + eigenVec * stepSize
-             print("eigenvalue")
-             print(eigenVal)
+             --I don't need this condition because eigenVal is always positive (absolute value)
+             eigenVec2, eigenVal2 = negativePowermethod(inputs,targets,parameters:clone(),gradParameters:clone(),10e-3,opt.currentDir,eigenVal)
+             if eigenVal2 > eigenVal then --the Hessian has a negative eigenvalue so we should proceed to this direction
+                 cost_before = computeCurrentLoss(inputs,targets,parameters:clone(),opt.currentDir) 
+                 --outputs_before = model:forward(inputs)
+                 --cost_before = criterion:forward(outputs, targets)
+                 --parameters:copy(parameters + eigenVec2 * stepSize)
+                 parameters:add(eigenVec2 * stepSize)
+                 --outputs_after = model:forward(inputs)
+                 --cost_after = criterion:forward(outputs, targets)
+                 cost_after = computeCurrentLoss(inputs,targets,parameters:clone(),opt.currentDir) 
+                 --print("cost_before")
+                 --print(cost_before)
+                 cost_before_acc[#cost_before_acc+1] = cost_before
+                 --print("cost_after")
+                 --print(cost_after)
+                 cost_after_acc[#cost_after_acc+1] = cost_after
+                 --sleep(2)
+             end
+             --print("eigenvalue")
+             --print(eigenVal)
              --print("eigenvalue")
              --print(eigenVec)
              --torch.save("eigenVec_10-8.bin",eigenVec)
-             os.exit()
+             ----os.exit()
          end
          
 
@@ -378,7 +410,7 @@ while true do
    train(trainData)
    test(testData)
 
-
+   torch.save("cost_before_acc.bin" , cost_before_acc);torch.save("cost_after_acc.bin",cost_after_acc)
    -- norm_gradParam's x-axis is the number of minibatches so far
    torch.save("norm_gradParam.bin", norm_gradParam)
    -- plot errors

@@ -6,16 +6,9 @@ local args = lapp[[
     -n,--name (string)     File name to save the image
     -s,--save (default 'img') Folder to save
     -h,--help (default true) show help document
+    -e,--epochPlot (default false) plot for test/train errors per epoch
 ]]
 
---os.exit(1)
-
---for i=1,1000 do 
---    if i == 100 then
---        print(i)
---        os.exit()
---    end
---end
 
 --if(args.help) then print(args); os.exit() end
 
@@ -26,10 +19,16 @@ gnuplot.pngfigure(filename)
 -- Creates a figure directly on the png file given with args.name. 
 -- This uses Gnuplot terminal png, or pngcairo if available.
 
-a = torch.load(args.input)
+if args.epochPlot == true then
+    
 
-gnuplot.plot({
-   torch.Tensor(a), '+'
-})
+else
+    a = torch.load(args.input)
 
-gnuplot.plotflush()
+    gnuplot.plot({
+        torch.Tensor(a), '+'
+    })
+
+    gnuplot.plotflush()
+then
+

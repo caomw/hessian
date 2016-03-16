@@ -33,6 +33,8 @@ Log:
 
 2016/03/15
 
+07:00 Many debugging. Finished the algorithm. Test accuracy improved after 20 epochs (out of 40 epochs) in comparison to normal mnist training. 
+
 
 
             

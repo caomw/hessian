@@ -305,3 +305,90 @@ model:add(dofile('models/'..opt.model..'.lua'):cuda())
 #2016-03-15
 
 - Did the sanity check for hessianPowermethod.lua. Looks good.  torch.cdiv(Hd, d) will yield the same constant eigenvalue.
+
+- Cost actually decreases! by this much: 
+```
+cost_before
+2.345761179924 
+cost_after
+2.3405652284622
+```
+This can be reproduced by runall.sh in results/2016-03-15/output-2016-03-15-19:48:42 with the train-mnist.lua at this moement. (go github if you really need and check the commit history.)
+
+^ This was wrong so I need to edit later.
+
+- How to load weights into a model
+```
+param_new,gradParam_eps = model:getParameters() 
+param_new:copy(parameters) # YOU NEED THIS LINE. 
+WRONG: param_new = parameters
+```
+
+^ I need to investigate why I need this copy thing.
+
+- while(torch.norm(d_old - d) > 10^e-3) criteria for the power iteration was wrong so I changed it to (normHd-normHd_old) > 10^e-3) 
+
+- If you have an almost similar function, you should combine them together. Otherwise, you have to do double-work, when you need to modify some part of the function.
+
+
+- I think the reason why we have this (figure below) is because parameters are updated again even after hessian update. (No. It was because I was mixing up global and local variables between in-function.)
+
+![](../results/2016-03-15/output-2016-03-15-21:42:07/img/plot-2016-03-15-21:48:22.png)
+
+- To do: still need to investigate why the zero thing happens. Might stem fromm getParameters() so I'm currently reviewing Storage and Module_.flatten(parameters). (https://github.com/torch/nn/blob/master/Module.lua)
+
+- Probably I should use parameters() instead of getParameters()????? But why does getParameters() thing doesn't work even though model is different? Maybe the getParameters() automatically points to the same memory area? ,that's why it can't call twice? 
+
+  MAYBE the cause was global variable / local variable problem???????  -->> YES THAT'S IT
+
+
+- Finally the algorithm looks working and the test accuracy actually improves in comparison to the normal mnist training. This will be reproduced by runall.sh in results/2016-03-15/output-2016-03-16-03:14:34
+
+- Comparison: 2016-03-14-20:07---
+
+>  1 % mean class accuracy (test set)                                                                                                                                               
+  2  8.7500e+01                                                                                                                                                                    
+  3  9.2200e+01                                                                                                                                                                    
+  4  9.3300e+01                                                                                                                                                                    
+  5  9.3600e+01                                                                                                                                                                    
+  6  9.3300e+01                                                                                                                                                                    
+  7  9.3700e+01                                                                                                                                                                    
+  8  9.3800e+01                                                                                                                                                                    
+  9  9.4100e+01                                                                                                                                                                    
+ 10  9.4300e+01                                                                                                                                                                    
+ 11  9.4500e+01                                                                                                                                                                    
+ 12  9.4800e+01                                                                                                                                                                    
+ 13  9.5000e+01                                                                                                                                                                    
+ 14  9.5000e+01                                                                                                                                                                    
+ 15  9.4900e+01                                                                                                                                                                    
+ 16  9.5000e+01                                                                                                                                                                    
+ 17  9.5000e+01                                                                                                                                                                    
+ 18  9.5100e+01                                                                                                                                                                    
+ 19  9.5000e+01                                                                                                                                                                    
+ 20  9.5000e+01                                                                                                                                                                    
+ 21  9.5000e+01                                                                                                                                                                    
+ 22  9.5000e+01                                                                                                                                                                    
+ 23  9.5100e+01                                                                                                                                                                    
+ 24  9.5100e+01                                                                                                                                                                    
+ 25  9.5100e+01                                                                                                                                                                    
+ 26  9.5300e+01                                                                                                                                                                    
+ 27  9.5000e+01                                                                                                                                                                    
+ 28  9.5400e+01                                                                                                                                                                    
+ 29  9.5500e+01                                                                                                                                                                    
+ 30  9.5300e+01                                                                                                                                                                    
+ 31  9.5400e+01                                                                                                                                                                    
+ 32  9.5400e+01                                                                                                                                                                    
+ 33  9.5100e+01                                                                                                                                                                    
+ 34  9.5200e+01                                                                                                                                                                    
+ 35  9.5100e+01                                                                                                                                                                    
+ 36  9.5300e+01                                                                                                                                                                    
+ 37  9.5300e+01                                                                                                                                                                    
+ 38  9.5400e+01                                                                                                                                                                    
+ 39  9.5400e+01                                                                                                                                                                    
+ 40  9.5600e+01                                                                                                                                                                    
+ 41  9.5600e+01 
+
+
+#2016/03/16
+
+- To do: extend plot_table.lua so that it also does to plot train/test error per epoch (Maybe I can use optim.Logger so I should look up this too)
