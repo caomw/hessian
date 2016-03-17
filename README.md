@@ -35,6 +35,10 @@ Log:
 
 07:00 Many debugging. Finished the algorithm. Test accuracy improved after 20 epochs (out of 40 epochs) in comparison to normal mnist training. 
 
+2016/03/16
 
+02:15 Developed runall.sh so that it also generates epoch plot.
+00:30 Modified train_mnist.lua so that it saves all the parameter information.
+03:15 Started train_cifar.lua. Finished (mostly).
 
             

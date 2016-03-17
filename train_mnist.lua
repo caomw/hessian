@@ -44,8 +44,13 @@ local opt = lapp[[
    -e,--maxEpoch      (default 50)          maximum number of epochs to run
    -c,--currentDir    (default "foo")          current directory that is executed this script
    -g,--gradnormThresh (default 0.5)        threshold of grad norm to switch from gradient descent to hessian
+   -h,--hessianMultiplier   (default 5)     will determine stepsize used for hessian mode. Stepsize = opt.learningRate * opt.hessianMultiplier
+   --powermethodDelta (default 10e-6)       threshold to stop powermethod; will keep running until difference between norm_Hd and norm_Hd_old < powermethodDelta
+   --hessian'         (default false)       turn on hessian mode 
+   --modelpath        (default "/models/train-train-model.lua") path to the model used in hessian mode; must be the same as the model used in normal training
 ]]
 
+torch.save("parameter_info.bin",opt)
 
 local dataset_filepath =  opt.currentDir .. '/dataset-mnist.lua' 
 --print(dataset_filepath)
@@ -259,22 +264,23 @@ function train(dataset)
                while clock() - t0 <= n do end
          end
 
+         if opt.hessian then
          if torch.norm(gradParameters) < opt.gradnormThresh then
-             eigenVec, eigenVal = hessianPowermethod(inputs,targets,parameters:clone(),gradParameters:clone(),10e-3,opt.currentDir)
+             eigenVec, eigenVal = hessianPowermethod(inputs,targets,parameters:clone(),gradParameters:clone(),opt.powermethodDelta,opt.currentDir,opt.modelpath)
              --parameterUpdate() -- parameters = parameters + stepSize * eigenVectors 
-             stepSize = opt.learningRate * 5
+             stepSize = opt.learningRate * opt.hessianMultiplier 
              --if eigenVal > 0 then
              --I don't need this condition because eigenVal is always positive (absolute value)
-             eigenVec2, eigenVal2 = negativePowermethod(inputs,targets,parameters:clone(),gradParameters:clone(),10e-3,opt.currentDir,eigenVal)
+             eigenVec2, eigenVal2 = negativePowermethod(inputs,targets,parameters:clone(),gradParameters:clone(),opt.powermethodDelta,opt.currentDir,eigenVal,opt.modelpath)
              if eigenVal2 > eigenVal then --the Hessian has a negative eigenvalue so we should proceed to this direction
-                 cost_before = computeCurrentLoss(inputs,targets,parameters:clone(),opt.currentDir) 
+                 cost_before = computeCurrentLoss(inputs,targets,parameters:clone(),opt.currentDir,opt.modelpath) 
                  --outputs_before = model:forward(inputs)
                  --cost_before = criterion:forward(outputs, targets)
                  --parameters:copy(parameters + eigenVec2 * stepSize)
                  parameters:add(eigenVec2 * stepSize)
                  --outputs_after = model:forward(inputs)
                  --cost_after = criterion:forward(outputs, targets)
-                 cost_after = computeCurrentLoss(inputs,targets,parameters:clone(),opt.currentDir) 
+                 cost_after = computeCurrentLoss(inputs,targets,parameters:clone(),opt.currentDir,opt.modelpath) 
                  --print("cost_before")
                  --print(cost_before)
                  cost_before_acc[#cost_before_acc+1] = cost_before
@@ -289,6 +295,7 @@ function train(dataset)
              --print(eigenVec)
              --torch.save("eigenVec_10-8.bin",eigenVec)
              ----os.exit()
+         end
          end
          
 

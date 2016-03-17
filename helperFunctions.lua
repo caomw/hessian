@@ -1,17 +1,17 @@
 require 'nn'
-function hessianPowermethod(inputs,targets,param,gradParam, eps, filepath) 
+function hessianPowermethod(inputs,targets,param,gradParam, delta, filepath, modelpath) 
     local epsilon = 10e-8 -- for numerical differentiation to get Hd 
     -- call the model from src/model 
     -- and put the parameters into this model. 
     local model = nn.Sequential()
-    model:add(dofile(filepath .. '/models/train-mnist-model.lua'))
+    model:add(dofile(filepath .. modelpath))
     model:add(nn.LogSoftMax())
     local criterion = nn.ClassNLLCriterion()
     local d = torch.randn(param:size()) --need to check
     local norm_Hd = 1; local norm_Hd_old = 2
     local param_new,gradParam_eps = model:getParameters() --I need to do this
     -- in order to reflect loading a new parameter set
-    while (norm_Hd_old - norm_Hd) > 10e-6 do
+    while (norm_Hd_old - norm_Hd) > delta do
         --print("hessianPowermethod")
         --print((norm_Hd_old-norm_Hd))
         param_new:copy(param + d * epsilon)
@@ -40,19 +40,19 @@ function hessianPowermethod(inputs,targets,param,gradParam, eps, filepath)
     return d , torch.cdiv(Hd,d)[1] 
 end
 
-function negativePowermethod(inputs,targets,param,gradParam, eps, filepath,eigen) 
+function negativePowermethod(inputs,targets,param,gradParam, delta, filepath,eigen,modelpath) 
     local epsilon = 10e-8 -- for numerical differentiation to get Hd
     -- call the model from src/model 
     -- and put the parameters into this model. 
     local model = nn.Sequential()
-    model:add(dofile(filepath .. '/models/train-mnist-model.lua'))
+    model:add(dofile(filepath .. modelpath))
     model:add(nn.LogSoftMax())
     local criterion = nn.ClassNLLCriterion()
     local d = torch.randn(param:size()) --need to check
     local norm_Md = 1; local norm_Md_old = 2 
     local param_new,gradParam_eps = model:getParameters() --I need to do this
     -- in order to reflect loading a new parameter set
-    while (norm_Md_old-norm_Md) > 10e-6 do
+    while (norm_Md_old-norm_Md) > delta do
         --print("negativePowermethod")
         --print((norm_Md_old - norm_Md))
         param_new:copy(param + d * epsilon)
@@ -82,9 +82,9 @@ function negativePowermethod(inputs,targets,param,gradParam, eps, filepath,eigen
     return d , torch.cdiv(Md,d)[1] 
 end
 
-function computeCurrentLoss(inputs,targets,parameters,filepath)
+function computeCurrentLoss(inputs,targets,parameters,filepath,modelpath)
     local model = nn.Sequential()
-    model:add(dofile(filepath .. '/models/train-mnist-model.lua'))
+    model:add(dofile(filepath .. modelpath))
     model:add(nn.LogSoftMax())
     local criterion = nn.ClassNLLCriterion()
 

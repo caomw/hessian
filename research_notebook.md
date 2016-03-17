@@ -344,7 +344,9 @@ WRONG: param_new = parameters
 
 - Finally the algorithm looks working and the test accuracy actually improves in comparison to the normal mnist training. This will be reproduced by runall.sh in results/2016-03-15/output-2016-03-16-03:14:34
 
-- Comparison: 2016-03-14-20:07---
+- Comparison: 2016-03-14/output-2016-03-14-20\:07\:25/logs/*
+
+![](../results/2016-03-17/for-meeting/epoch_plot.png)
 
 >  1 % mean class accuracy (test set)                                                                                                                                               
   2  8.7500e+01                                                                                                                                                                    
@@ -391,4 +393,24 @@ WRONG: param_new = parameters
 
 #2016/03/16
 
-- To do: extend plot_table.lua so that it also does to plot train/test error per epoch (Maybe I can use optim.Logger so I should look up this too)
+- Extend plot_table.lua so that it also does to plot train/test error per epoch (Maybe I can use optim.Logger so I should look up this too)
+
+- To do so, I installed gnu-sed. ('brew install gnu-sed --with-default-names') This will install sed in /usr/local/bin. 
+
+- Lua table: a = {}; a["key"] = 10; then you get a = { key : 10 } 
+
+- Modify runall.sh script and train_mnist.lua so that runall.sh will record all the parameters that could affect the test error. 
+
+- To do: Do the same experiment on cifar10. 
+
+***Note***
+
+- train_mnist uses float tensor for SGD.
+
+- Both train_mnist.lua and train_cifar.lua are supposed to save the net at every epoch, but I commented out "torch.save(model)"
+
+- To do: I should check this: for train_cifar.lua, it seems that the original script loops over each example of a minibatch.
+If I just feed the entire minibatch one at a time, the result should be the same...(I think the reason why they normalize gradients is because of this loop)
+
+
+
