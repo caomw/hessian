@@ -72,49 +72,7 @@ classes = {'airplane', 'automobile', 'bird', 'cat',
 if opt.network == '' then
    -- define model to train
    model = nn.Sequential()
-
-   if opt.model == 'convnet' then
-      ------------------------------------------------------------
-      -- convolutional network
-      ------------------------------------------------------------
-      -- stage 1 : mean+std normalization -> filter bank -> squashing -> max pooling
-      model:add(nn.SpatialConvolutionMap(nn.tables.random(3,16,1), 5, 5))
-      model:add(nn.Tanh())
-      model:add(nn.SpatialMaxPooling(2, 2, 2, 2))
-      -- stage 2 : filter bank -> squashing -> max pooling
-      model:add(nn.SpatialConvolutionMap(nn.tables.random(16, 256, 4), 5, 5))
-      model:add(nn.Tanh())
-      model:add(nn.SpatialMaxPooling(2, 2, 2, 2))
-      -- stage 3 : standard 2-layer neural network
-      model:add(nn.Reshape(256*5*5))
-      model:add(nn.Linear(256*5*5, 128))
-      model:add(nn.Tanh())
-      model:add(nn.Linear(128,#classes))
-      ------------------------------------------------------------
-
-   elseif opt.model == 'mlp' then
-      ------------------------------------------------------------
-      -- regular 2-layer MLP
-      ------------------------------------------------------------
-      model:add(nn.Reshape(3*32*32))
-      model:add(nn.Linear(3*32*32, 1*32*32))
-      model:add(nn.Tanh())
-      model:add(nn.Linear(1*32*32, #classes))
-      ------------------------------------------------------------
-
-   elseif opt.model == 'linear' then
-      ------------------------------------------------------------
-      -- simple linear model: logistic regression
-      ------------------------------------------------------------
-      model:add(nn.Reshape(3*32*32))
-      model:add(nn.Linear(3*32*32,#classes))
-      ------------------------------------------------------------
-
-   else
-      print('Unknown model type')
-      cmd:text()
-      error()
-   end
+   model:add(dofile(opt.currentDir .. opt.modelpath))
 else
    print('<trainer> reloading previously trained network')
    model = nn.Sequential()
