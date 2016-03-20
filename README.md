@@ -33,7 +33,7 @@ Log:
 
 2016/03/15
 
-07:00 Many debugging. Finished the algorithm. Test accuracy improved after 20 epochs (out of 40 epochs) in comparison to normal mnist training. 
+07:00 Finished debugging. Finished the algorithm. Test accuracy improved after 20 epochs (out of 40 epochs) in comparison to normal mnist training. 
 
 2016/03/16
 
@@ -41,4 +41,17 @@ Log:
 00:30 Modified train_mnist.lua so that it saves all the parameter information.
 03:15 Started train_cifar.lua. Finished (mostly).
 
-            
+2016/03/17
+
+01:00 Attempted to make a script that takes accuracy.log and error.log (from train_cifar.lua). Turned out formatting is messy so will change my plan. 
+01:00 Modified train_mnist.lua so that it records the size of eigenvalues?
+
+2016/03/18
+
+02:00 Save the norm of gradients per mini-batch, eigenvalues, difference in loss before and after the update. Keep track the proportion of when the descent happens (number of calls to the power method)
+00:40 Experiment.
+
+
+2016/03/19
+
+04:00 Start writing final project report. Read Bengio's paper and Martens' paper.  

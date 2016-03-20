@@ -6,3 +6,4 @@ Note: this is based on the reduced dataset (2000 samples). The full dataset cont
 
 ![](./img/epoch_plot.png)
 
+(the plot can be reproduced by /Users/yutaro/Research/spring2016/Hessian/results/2016-03-17/for-meeting/plot.lua)

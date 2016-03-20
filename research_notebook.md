@@ -348,6 +348,8 @@ WRONG: param_new = parameters
 
 ![](../results/2016-03-17/for-meeting/epoch_plot.png)
 
+(the plot can be reproduced by /Users/yutaro/Research/spring2016/Hessian/results/2016-03-17/for-meeting/plot.lua)
+
 >  1 % mean class accuracy (test set)                                                                                                                                               
   2  8.7500e+01                                                                                                                                                                    
   3  9.2200e+01                                                                                                                                                                    
@@ -409,8 +411,76 @@ WRONG: param_new = parameters
 
 - Both train_mnist.lua and train_cifar.lua are supposed to save the net at every epoch, but I commented out "torch.save(model)"
 
+#2016/03/17
+
 - To do: I should check this: for train_cifar.lua, it seems that the original script loops over each example of a minibatch.
 If I just feed the entire minibatch one at a time, the result should be the same...(I think the reason why they normalize gradients is because of this loop)
 
+- Attempted to make a script that takes accuracy.log and error.log (from train_cifar.lua). Turned out formatting is messy so will instead modify the way accLogger records acc and error in train_cifar.lua.
+
+- **To do 1st**: 
+- But before that..verify we actually get negative eigenvalue. Done.
+- Keep track the proportion of when the descent happens (number of calls to the power method) Done.
+- Save the norm of gradients per mini-batch, eigenvalues, difference in loss before and after the update. Done.
+- Also time one run of an experiment to see how much hessian algo slows down the stuff. 
+
+#2016/03/18
+
+- Modify plot_table.lua so that it also produces plot for the above recorded values.
+
+- It seems just adding eigenVectors to parameters (so stepSize = 1) was worse than spteSize = learningRate * 5. Maybe it was too big. Maybe the right value lies in-between 1 and learningRate * 5. (result is in 2016-03-17/output-2016-03-18-20:30:42)
+
+-  parameters:add(-eigenVec2) is worse (just to confirm.)  (output-2016-03-18-21:17:27)
+
+- **To do 2nd**
+- Add an option for Raphy (for cuda) to train_mnist.lua and train_cifar.lua 
+- Tune the stepsize parameter more (I might want to use Raphy for this?)
 
 
+
+- At the end of the day, I need to have runall.sh that will produce:
+   - the plot of test error of modified algo v.s. regular algo -> I need to have two runs of train-mnist.lua and put the resulting *.bin to the separate folder,
+   and then call plot_table.lua and 
+
+
+#2016/03/19
+
+> comment
+
+- The size of the gradient doesn't converge. What's going on? Why is the algorithm not finding the right direction? 
+- One epoch should take about 21.5 min for full Cifar10 (without CUDA) on Raphy
+
+> experiment setting
+
+```
+  seed : 1
+  learningRate : 0.001
+  batchSize : 10
+  hessianMultiplier : 5
+  hessian : false
+  network : ""
+  model : "convnet"
+  save : "train_cifar"
+  maxIter : 5
+  powermethodDelta : 1e-05
+  preprocess : false
+  gradnormThresh : 0.01
+  t0 : 1
+  momentum : 0
+  modelpath : "/models/train-cifar-model.lua"
+  full : false (meaning using only 2000 samples)
+  threads : 2
+  optimization : "SGD"
+  maxEpoch : 100
+  weightDecay : 0
+  currentDir : "/Users/yutaro/Research/spring2016/Hessian/results/2016-03-19/../../src"
+  visualize : false
+  time : 43min
+```
+
+> plot
+
+![](../results/2016-03-19/cifar-regular-output-2016-03-19-17:21:24/img/plot-2016-03-19-18:04:22.png)
+
+
+To do: I should also plot train_acc, test_acc, etc for this experiment. (I need to write a plot.lua thing probably)

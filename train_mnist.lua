@@ -186,6 +186,9 @@ testLogger = optim.Logger(paths.concat(opt.save, 'test.log'))
 
 cost_before_acc = {}
 cost_after_acc = {}
+eigenTable = {}
+eigenTableNeg = {}
+powercallRecord = {}
 
 -- training function
 function train(dataset)
@@ -265,14 +268,19 @@ function train(dataset)
          end
 
          if opt.hessian then
+             local flag = 0
          if torch.norm(gradParameters) < opt.gradnormThresh then
+             flag = flag + 1
              eigenVec, eigenVal = hessianPowermethod(inputs,targets,parameters:clone(),gradParameters:clone(),opt.powermethodDelta,opt.currentDir,opt.modelpath)
              --parameterUpdate() -- parameters = parameters + stepSize * eigenVectors 
+             eigenTable[#eigenTable+1] = eigenVal
              stepSize = opt.learningRate * opt.hessianMultiplier 
              --if eigenVal > 0 then
              --I don't need this condition because eigenVal is always positive (absolute value)
              eigenVec2, eigenVal2 = negativePowermethod(inputs,targets,parameters:clone(),gradParameters:clone(),opt.powermethodDelta,opt.currentDir,eigenVal,opt.modelpath)
              if eigenVal2 > eigenVal then --the Hessian has a negative eigenvalue so we should proceed to this direction
+                 flag = flag + 1
+                 eigenTableNeg[#eigenTableNeg+1] = eigenVal - eigenVal2
                  cost_before = computeCurrentLoss(inputs,targets,parameters:clone(),opt.currentDir,opt.modelpath) 
                  --outputs_before = model:forward(inputs)
                  --cost_before = criterion:forward(outputs, targets)
@@ -287,6 +295,7 @@ function train(dataset)
                  --print("cost_after")
                  --print(cost_after)
                  cost_after_acc[#cost_after_acc+1] = cost_after
+                 if cost_before > cost_after then flag = flag + 1 end
                  --sleep(2)
              end
              --print("eigenvalue")
@@ -296,6 +305,7 @@ function train(dataset)
              --torch.save("eigenVec_10-8.bin",eigenVec)
              ----os.exit()
          end
+            powercallRecord[#powercallRecord+1] = flag
          end
          
 
@@ -412,7 +422,10 @@ end
 ----------------------------------------------------------------------
 -- and train!
 --
+testErrTable = {} 
+testAccTable = {}
 while true do
+   local timer = sys.clock()
    -- train/test  
    train(trainData)
    test(testData)
@@ -420,6 +433,9 @@ while true do
    torch.save("cost_before_acc.bin" , cost_before_acc);torch.save("cost_after_acc.bin",cost_after_acc)
    -- norm_gradParam's x-axis is the number of minibatches so far
    torch.save("norm_gradParam.bin", norm_gradParam)
+   torch.save("eigenTable.bin",eigenTable)
+   torch.save("eigenTableNeg.bin",eigenTableNeg)
+   torch.save("powercallRecord.bin",powercallRecord)
    -- plot errors
    if opt.plot then
       trainLogger:style{['% mean class accuracy (train set)'] = '-'}
@@ -427,5 +443,9 @@ while true do
       trainLogger:plot()
       testLogger:plot()
    end
-   if epoch > opt.maxEpoch then break end 
+   if epoch > opt.maxEpoch then 
+       torch.save("time_it_took.bin",sys.clock()-timer)
+       break 
+   end 
+
 end

@@ -237,15 +237,11 @@ end
 
 -- this matrix records the current confusion across classes
 confusion = optim.ConfusionMatrix(classes)
-norm_gradParam = {}
-minibatch_norm_gradParam = 0
 
 -- log results to files
 accLogger = optim.Logger(paths.concat(opt.save, 'accuracy.log'))
 errLogger = optim.Logger(paths.concat(opt.save, 'error.log'   ))
 
-cost_before_acc = {}
-cost_after_acc = {}
 
 -- display function
 function display(input)
@@ -279,6 +275,14 @@ function display(input)
    end
    iter = iter + 1
 end
+
+norm_gradParam = {}
+minibatch_norm_gradParam = 0
+cost_before_acc = {}
+cost_after_acc = {}
+eigenTable = {}
+eigenTableNeg = {}
+powercallRecord = {}
 
 -- training function
 function train(dataset)
@@ -356,19 +360,28 @@ function train(dataset)
 
          -- hessian mode?
          if opt.hessian then
+            local flag = 0
             if torch.norm(gradParameters) < opt.gradnormThresh then
+             flag = flag + 1
              eigenVec, eigenVal = hessianPowermethod(inputs,targets,parameters:clone(),gradParameters:clone(),opt.powermethodDelta,opt.currentDir,opt.modelpath)
+
+             eigenTable[#eigenTable+1] = eigenVal 
              stepSize = opt.learningRate * opt.hessianMultiplier
              eigenVec2, eigenVal2 = negativePowermethod(inputs,targets,parameters:clone(),gradParameters:clone(),opt.powermethodDelta,opt.currentDir,eigenVal,opt.modelpath)
              if eigenVal2 > eigenVal then --the Hessian has a negative eigenvalue so we should proceed to this direction
+                 flag = flag + 1
+                 eigenTableNeg[#eigenTableNeg+1] = eigenVal - eigenVal2
+
                  cost_before = computeCurrentLoss(inputs,targets,parameters:clone(),opt.currentDir,opt.modelpath)
                  parameters:add(eigenVec2 * stepSize)
                  cost_after = computeCurrentLoss(inputs,targets,parameters:clone(),opt.currentDir,opt.modelpath)
                  cost_before_acc[#cost_before_acc+1] = cost_before
                  cost_after_acc[#cost_after_acc+1] = cost_after
+                 if cost_before > cost_after then flag = flag + 1 end 
                  --sleep(2)
              end
             end
+            powercallRecord[#powercallRecord+1] = flag
          end 
 
 
@@ -491,22 +504,38 @@ end
 ----------------------------------------------------------------------
 -- and train!
 --
+testErrTable = {}
+testAccTable = {}
+trainErrTable = {}
+trainAccTable = {}
 while true do
+   local timer = sys.clock()      
    -- train/test
    trainAcc, trainErr = train(trainData)
    testAcc,  testErr  = test (testData)
 
    torch.save("cost_before_acc.bin" , cost_before_acc);torch.save("cost_after_acc.bin",cost_after_acc)
    torch.save("norm_gradParam.bin", norm_gradParam)
+   torch.save("eigenTable.bin",eigenTable)
+   torch.save("eigenTableNeg.bin",eigenTableNeg)
+   torch.save("powercallRecord.bin",powercallRecord)
 
    -- update logger
    accLogger:add{['% train accuracy'] = trainAcc, ['% test accuracy'] = testAcc}
    errLogger:add{['% train error']    = trainErr, ['% test error']    = testErr}
+   
+   testErrTable[#testErrTable+1] = testErr; testAccTable[#testAccTable+1] = testAcc
+   trainErrTable[#trainErrTable+1] = trainErr; trainAccTable[#trainAccTable+1] = trainAcc
 
    -- plot logger
    accLogger:style{['% train accuracy'] = '-', ['% test accuracy'] = '-'}
    errLogger:style{['% train error']    = '-', ['% test error']    = '-'}
    accLogger:plot()
    errLogger:plot()
-   if epoch > opt.maxEpoch then break end
+   if epoch > opt.maxEpoch then 
+       torch.save("testErr.bin",testErrTable);torch.save("testAcc.bin",testAccTable)
+       torch.save("trainErr.bin",trainErrTable);torch.save("trainAcc.bin",trainAccTable)
+       torch.save("time_it_took.bin",sys.clock()-timer)
+       break 
+   end
 end
