@@ -494,6 +494,13 @@ To do: I should also plot train_acc, test_acc, etc for this experiment. (I need 
 
 ![](../results/2016-03-19/cifar-regular-output-2016-03-19-17:21:24/img/epochPlotError.png)
 
+
+###a cifar 2000 experiment with preprocessing, with ReLu and Dropout
+
+> accuracy plot 
+
+
+
 - I have no idea why whether or not putting echo $(dirname $(greadlink -f $0)) will result in a different behaviour in results/2016-03-19/cifar-regular-output-2016-03-19-17:21:24/generatePlot.sh. Having stuck on this for an hour 
 
 - generatePlot.sh is located at results/2016-03-19/
@@ -529,3 +536,8 @@ convert hoge.png -background white -flatten -alpha off hoge2.png
 ```
 
 To do: I had to resolve the nested folder issue at /Users/yutaro/Research/spring2016/Hessian/results/2016-03-19/parameterExperient1-2016-03-20-05:34:12
+
+^ I resolved.
+
+
+To do: Start making a notebook for meeting. 
