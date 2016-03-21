@@ -17,10 +17,14 @@ Note: this is based on the reduced dataset (2000 samples). The full dataset cont
 ![](./img/mnist-full-negative-eigen/power_plot.png)
 
 The number of the case which...
-a)The norm of gradient is close to zero: 26728 / 90000 (90000 is the number of total parameter updates) 
-b)The second powermethod is called: 26672 / 90000
-c)The cost function decreases:  12531 / 90000 
-d)The cost function increases: 14141 / 90000
+
+- a)The norm of gradient is close to zero: 26728 / 90000 (90000 is the number of total parameter updates) 
+
+- b)The second powermethod is called: 26672 / 90000
+
+- c)The cost function decreases:  12531 / 90000 
+
+- d)The cost function increases: 14141 / 90000
 
 Comment: 
 
@@ -38,7 +42,7 @@ Comment:
 
 3. Full sample plot  
 
-![](./img/mnist-full-negative-eigen/parameter_test.eps)
+![](./img/mnist-full-negative-eigen/parameter_test.png)
 
 (I stopped the regular one after 10 epochs because this was a sanity check and it keeps having better accuracy than the hessian mode)
 
