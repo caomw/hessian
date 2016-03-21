@@ -478,9 +478,54 @@ If I just feed the entire minibatch one at a time, the result should be the same
   time : 43min
 ```
 
-> plot
+> gradient plot
 
 ![](../results/2016-03-19/cifar-regular-output-2016-03-19-17:21:24/img/plot-2016-03-19-18:04:22.png)
 
 
 To do: I should also plot train_acc, test_acc, etc for this experiment. (I need to write a plot.lua thing probably)
+
+> accuracy plot
+
+![](../results/2016-03-19/cifar-regular-output-2016-03-19-17:21:24/img/epochPlotAccuracy.png)
+
+
+> error plot
+
+![](../results/2016-03-19/cifar-regular-output-2016-03-19-17:21:24/img/epochPlotError.png)
+
+- I have no idea why whether or not putting echo $(dirname $(greadlink -f $0)) will result in a different behaviour in results/2016-03-19/cifar-regular-output-2016-03-19-17:21:24/generatePlot.sh. Having stuck on this for an hour 
+
+- generatePlot.sh is located at results/2016-03-19/
+
+- Somehow the png file created by gnuplot.pngfigure(filename) doesn't display legend correctly, I had to use gnuplot.epsfigure(filename) and convert eps file to png file.
+
+> convert -density 100 hoge.eps hoge.png
+
+will do it.
+
+But the background is gray. How to resolve this?
+
+(reference: http://rikedan.blogspot.com/2014/09/epslinux.html, http://bluepost69-tech.hatenablog.com/entry/2015/12/01/200327)
+
+Final script
+
+```
+convert -density 150 test.eps hoge.png 
+convert hoge.png -background white -flatten -alpha off hoge2.png
+
+```
+
+- I completely misunderstood the flag option of lua command. For true/falth flag, you don't need to put (default --- ) stuff.
+```
+  -- simple.lua
+  local args = require ('lapp') [[
+  Various flags and option types
+    -p          A simple optional flag, defaults to false
+    -q,--quiet  A simple flag with long name
+    -o  (string)  A required option with argument
+    <input> (default stdin)  Optional input file parameter
+  ]]
+```
+
+To do: I had to resolve the nested folder issue at /Users/yutaro/Research/spring2016/Hessian/results/2016-03-19/parameterExperient1-2016-03-20-05:34:12

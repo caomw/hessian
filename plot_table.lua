@@ -3,12 +3,14 @@ require 'paths'
 
 local args = lapp[[
     -i,--input1 (string)    The data 1 you want to plot
-    -j,--input2 (default 'nil')    The data 2 you want to plot
+    -j,--input2 (default '')    The data 2 you want to plot
     -p,--powerRecord (default 'nil') The record of power iteration call
     -n,--name (string)     File name to save the image
     -s,--save (default 'img') Folder to save
-    -h,--help (default true) show help document
-    -e,--epochPlot (default false) plot for test/train errors per epoch
+    -e,--epochPlot plot for test/train errors per epoch
+    -t,--epochPlotTensor  plot for test/train error/acc that is stored as lua table
+    -x,--xlabel (string)  xlabel
+    -y,--ylabel (string)  ylabel
 ]]
 
 
@@ -17,12 +19,13 @@ local args = lapp[[
 
 local filename  =  paths.concat(args.save, args.name)
 
-gnuplot.pngfigure(filename)
--- Creates a figure directly on the png file given with args.name. 
--- This uses Gnuplot terminal png, or pngcairo if available.
+print(args.epochPlotTensor)
 
+if args.epochPlot then
+    gnuplot.pngfigure(filename)
+    -- Creates a figure directly on the png file given with args.name. 
+    -- This uses Gnuplot terminal png, or pngcairo if available.
 
-if(args.epochPlot == "true") then
     require 'csvigo' 
     print("ok")
     local test = csvigo.load(args.input1)
@@ -37,12 +40,28 @@ if(args.epochPlot == "true") then
 
     gnuplot.plotflush()  
 
+elseif args.epochPlotTensor then
+    print(filename)
+    gnuplot.epsfigure(filename)
+    print(args.input1)
+    local train = torch.Tensor(torch.load(args.input1))
+    print(args.input2)
+    local test = torch.Tensor(torch.load(args.input2))
+
+    gnuplot.xlabel(args.xlabel)
+    gnuplot.ylabel(args.ylabel)
+
+    gnuplot.plot({"test",test, "-"},{"train", train, "-"})
+
+    gnuplot.plotflush()
 else
+    gnuplot.pngfigure(filename)
     a = torch.load(args.input1)
 
-    gnuplot.plot({
-        torch.Tensor(a), '+'
-    })
+    gnuplot.xlabel(args.xlabel)
+    gnuplot.ylabel(args.ylabel)
+
+    gnuplot.plot({torch.Tensor(a), '+'})
 
     gnuplot.plotflush()
 end

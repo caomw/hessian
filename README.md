@@ -55,3 +55,9 @@ Log:
 2016/03/19
 
 04:00 Start writing final project report. Read Bengio's paper and Martens' paper.  
+04:00 Cifar experiments. Mnist experiments. Plotting.
+
+2016/03/20
+
+06:00 Developed runall.sh (for train_cifar.lua) so that it also incorporates plotting function for error/accuracy. Fixed bugs for ImageMagitck (convert)
+
