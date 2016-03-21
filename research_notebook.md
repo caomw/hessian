@@ -421,8 +421,11 @@ If I just feed the entire minibatch one at a time, the result should be the same
 - **To do 1st**: 
 - But before that..verify we actually get negative eigenvalue. Done.
 - Keep track the proportion of when the descent happens (number of calls to the power method) Done.
+
+> The plot is located at results/2016-03-19/output-2016-03-20-01:38:02
+
 - Save the norm of gradients per mini-batch, eigenvalues, difference in loss before and after the update. Done.
-- Also time one run of an experiment to see how much hessian algo slows down the stuff. 
+- Also time one run of an experiment to see how much hessian algo slows down the stuff. Done. 
 
 #2016/03/18
 

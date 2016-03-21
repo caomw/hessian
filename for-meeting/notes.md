@@ -12,16 +12,35 @@ Note: this is based on the reduced dataset (2000 samples). The full dataset cont
 
 ## MNIST
 
-1. Parameter Experiment 
+1. Negative Eigenvalues v.s. Epoch
+
+![](./img/mnist-full-negative-eigen/power_plot.png)
+
+The number of the case which...
+a)The norm of gradient is close to zero: 26728 / 90000 (90000 is the number of total parameter updates) 
+b)The second powermethod is called: 26672 / 90000
+c)The cost function decreases:  12531 / 90000 
+d)The cost function increases: 14141 / 90000
+
+Comment: 
+
+- a) and b) tells us that for full mnist, whenever the norm of gradient is close to zero, the algorithm is actually near a saddle point instead of a local minimum. 
+
+- c) and d) tells us that more than half of the time, the algorithm increases the loss, instead of decreasing it. The stepsize might be too big...? I need to look into this more. (Note: "learningRate*5, which I used for this experiment, was chosen based on the result of parameter experiment below; learningRate * 5 seems the best choice based on the test accuracy.)
+    
+
+2. Parameter Experiment 
 
 
 ![](./img/mnist-parameter-experiment/parameter_test.png)
 
 (the plot can be reproduced by /Users/yutaro/Research/spring2016/Hessian/results/2016-03-19/plot_para_experiment.lua (with some modification of the input))
 
+3. Full sample plot  
 
-2. 
+![](./img/mnist-full-negative-eigen/parameter_test.eps)
 
+(I stopped the regular one after 10 epochs because this was a sanity check and it keeps having better accuracy than the hessian mode)
 
 ## CIFAR-10
 
