@@ -14,6 +14,10 @@ Note: this is based on the reduced dataset (2000 samples). The full dataset cont
 
 1. Negative Eigenvalues v.s. Epoch
 
+The blue dot : accuracy per epoch (I had to use a dot-representation in order to plot accuracy v.s. epoch and the negative eigenvalues v.s. minibatches at the same time.)
+
+The green dot : represents either a), b), c), or d) case (described below)
+
 ![](./img/mnist-full-negative-eigen/power_plot.png)
 
 The number of the case which...
@@ -45,6 +49,8 @@ Comment:
 ![](./img/mnist-full-negative-eigen/parameter_test.png)
 
 (I stopped the regular one after 10 epochs because this was a sanity check and it keeps having better accuracy than the hessian mode)
+
+This means that I need to tune the stepsize for full dataset as well. (cannot rely on the info from the reduced dataset (2000 data sample set)
 
 ## CIFAR-10
 
