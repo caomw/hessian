@@ -8,6 +8,8 @@ Note: this is based on the reduced dataset (2000 samples). The full dataset cont
 
 (the plot can be reproduced by /Users/yutaro/Research/spring2016/Hessian/results/2016-03-17/for-meeting/plot.lua)
 
+(the original data of hessian mode is from /Users/yutaro/Research/spring2016/Hessian/results/2016-03-17/exp-output-2016-03-18-19:11:26/
+
 #2016/03/21 Meeting 02
 
 ## MNIST
@@ -24,7 +26,7 @@ The number of the case which...
 
 - a)The norm of gradient is close to zero: 26728 / 90000 (90000 is the number of total parameter updates) 
 
-- b)The second powermethod is called: 26672 / 90000
+- b)The second test passed (L > M): 26672 / 90000
 
 - c)The cost function decreases:  12531 / 90000 
 
@@ -158,6 +160,38 @@ Title: The norm of gradient
 
 Title: Accuracy v.s. epoch
 ![](./img/2016-03-23/minibatch2000-relu/epochPlotAccuracy.png)
+
+
+## Line Search Test
+
+This experiment compares the accuracy between line-search and constant*learningRate after 100 epochs, using the 2000 data samples of MNIST, where constant = 1 in this experiment.  
+
+### Sanity check
+
+The following confirms that the line search actually decreases the cost each time. (comparison between c) and d).
+
+The comparison between a) and b) confirms that we are at saddle points most of the time. (existence of at least one negative eigenvalue when the gradient threshold passed.)
+
+The number of the case in which...
+
+- a)The norm of gradient is close to zero: 2832 / 20000 (20000 is the number of total parameter updates) 
+
+- b)The second test passed (L > M): 2827 / 20000
+
+- c)The cost function decreases:  2827 / 20000 
+
+- d)The cost function increases: 0 / 20000
+
+### Plot
+
+To do: generate the plot that compares this with the regular one
+
+> command 
+> th ../../../src/plot_table.lua -xlabel "epoch" -ylabel "accuracy" -input1 baseline-100epoch-output-2016-03-22-04\:56\:28/logs/test.csv  -input2 linesearch-100epoch-output-2016-03-22-04\:19\:57/logs/test.csv -epochCompareTestAcc -name "plot.eps" -compareName1 "baseline" -compareName2 "linesearch"
+> convert -density 150 plot.eps hoge.png
+> convert hoge.png -background white -flatten -alpha off plot.png
+
+![](./img/2016-03-23/linesearch-experiment/plot.png)
 
 
 

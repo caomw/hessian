@@ -66,15 +66,23 @@ Log:
 2016/03/21
 
 01:00 Wrote a part of final report. (about today's meeting, and the next experiment I'll perform.)
+
 00:20 Spent 20 min to try to find a better way to visualize the negative eigenvalu v.s. epoch plot. But couldn't find the solution.
+
 00:45 Reduced the model size. Testing out batchsize thing in cifar. Need to test the reduced models on 2000 samples.
+
 00:30 Ran 2000-batchsize experiment on cifar10. Modified train_mnist.lua to incoporate newton-like stepsize tuning. 
+
 00:20 Started experiment on Raphy about compearing Newton and Regular with batchsize 2000 and full model.
+
 00:30 Wrote line search. To do: modifiy helperFunction.lua. See the result of Raphy. 
+
 01:00 Modified helperFunction.lua and thus finished implementing line search. Testing out line search on mnist. Test finished. Preparing plot for meeting.
+
 00:40 Running experiments on Newton, linesearch, reduced model for mnist full.
 
 2016/03/22
 
 00:30 Fixed bug. Running comparison-newton-linesearch-hessianconstant
-00:30 Prepared plots for meeting.
+
+03:00 Prepared plots for meeting.

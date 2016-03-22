@@ -342,7 +342,7 @@ WRONG: param_new = parameters
   MAYBE the cause was global variable / local variable problem???????  -->> YES THAT'S IT
 
 
-- Finally the algorithm looks working and the test accuracy actually improves in comparison to the normal mnist training. This will be reproduced by runall.sh in results/2016-03-15/output-2016-03-16-03:14:34
+- Finally the algorithm looks working and the test accuracy actually improves in comparison to the normal mnist training. This will be reproduced by runall.sh in results/2016-03-15/output-2016-03-16-03:14:34   The plot is in ./logs/epochPlot.png. This is the same as /Users/yutaro/Research/spring2016/Hessian/results/2016-03-17/exp-output-2016-03-18-19:11:26/ 
 
 - Comparison: 2016-03-14/output-2016-03-14-20\:07\:25/logs/*
 
@@ -554,3 +554,29 @@ To do: I had to resolve the nested folder issue at /Users/yutaro/Research/spring
 2016-03-21/gradient-minibatch-experiment for cifar10. 
 
 - time_it_took.bin is reliable after output-2016-03-22-01:30:18
+
+
+
+
+#2016/03/22
+
+***Notes for future experiments***
+
+- Next time, I should code up generating README file automatically from runall.sh or something (including parameter info, the purpose of the experiment etc)
+
+> Email to Uri
+> So I fixed the bug, and I'm about to start running the newton / line-search / constant * learningRate comparison experiment. 
+I finished the baseline experiment, and when I was checking the gradient norm, I have the following choices for threshold:
+
+0.01 : This will give us 808 times of passing the first test (gradient threshold test) over 60000 updates.
+0.02 : This will give us 2715 times of passing the first test (gradient threshold test) over 60000 updates. 
+0.05 : This will give us 13581 times of passing the first test (gradient threshold test) over 60000 updates.
+
+Given the fact that the first plot that we had (the one where our algorithm performs better than the baseline) had 315 / 8000 ratio of passing the gradient norm test, I'm inclined to test it with 0.02 since 315 / 8000 (can be checked here:  /Users/yutaro/Research/spring2016/Hessian/results/2016-03-15/output-2016-03-16-03:14:34) is roughly the same as 2715 / 60000.
+
+Also  
+
+
+
+
+- To do : I should code up for CUDA mode in train_mnist.lua and cifar.lua

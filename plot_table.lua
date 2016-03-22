@@ -9,6 +9,9 @@ local args = lapp[[
     -s,--save (default 'img') Folder to save
     -e,--epochPlot plot for test/train errors per epoch
     -t,--epochPlotTensor  plot for test/train error/acc that is stored as lua table
+    --epochCompareTestAcc plot for comparing test1.csv test2.csv 
+    --compareName1 (default 'hoge1') name used as legend for test1.csv 
+    --compareName2 (default 'hoge2') name used as legend for test2.csv
     -x,--xlabel (string)  xlabel
     -y,--ylabel (string)  ylabel
 ]]
@@ -21,7 +24,26 @@ local filename  =  paths.concat(args.save, args.name)
 
 print(args.epochPlotTensor)
 
-if args.epochPlot then
+if args.epochCompareTestAcc then
+    gnuplot.epsfigure(filename)
+    -- Creates a figure directly on the png file given with args.name. 
+    -- This uses Gnuplot terminal png, or pngcairo if available.
+
+    require 'csvigo' 
+    print("ok")
+    local test1 = csvigo.load(args.input1)
+    test1 = torch.Tensor(test1["test_acc"])
+    local test2 = csvigo.load(args.input2)
+    test2 = torch.Tensor(test2["test_acc"])
+
+    --power = torch.load(args.powerRecord)
+
+
+    gnuplot.plot({args.compareName1,test1, "-"},{args.compareName2,test2, "-"})
+
+    gnuplot.plotflush()  
+
+elseif args.epochPlot then
     gnuplot.pngfigure(filename)
     -- Creates a figure directly on the png file given with args.name. 
     -- This uses Gnuplot terminal png, or pngcairo if available.
