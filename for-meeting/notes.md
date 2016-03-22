@@ -103,5 +103,61 @@ y-axis: the norm of gradient
 
 #2016/03/23 Meeting 03
 
+## The norm of gradient in CIFAR-10 with different minibatch size
+
+This experiment shows how the norm of gradient will be accurate as I increase the size of minibatch in CIFAR-10. The following plots show that the norm of gradient gets close to zero as the training goes on. All the results can be reproduced at 
+
+The default setting is the following:
+
+>   learningRate : 0.001
+>   batchSize : 256 
+>   hessianMultiplier : 5 
+>   hessian : false
+>   preprocess : false
+>   gradnormThresh : 0.01
+>   modelpath : "/models/train-cifar-model.lua"
+>   full : false
+>   maxEpoch : 10 
+
+### batchsize 256; train-cifar-model.lua
+
+Title: The norm of gradient 
+![](./img/minibatch256/gradientPlot.png)
+
+Title: Accuracy v.s. epoch
+![](./img/minibatch256/epochPlotAccuracy.png)
+
+### batchsize 512; train-cifar-model.lua
+
+Title: The norm of gradient 
+![](./img/minibatch512/gradientPlot.png)
+
+Title: Accuracy v.s. epoch
+![](./img/minibatch512/epochPlotAccuracy.png)
+
+### batchsize 512; adding dropout and ReLU to the default model
+
+Title: The norm of gradient 
+![](./img/minibatch512-drop-relu/gradientPlot.png)
+
+Title: Accuracy v.s. epoch
+![](./img/minibatch512-drop-relu/epochPlotAccuracy.png)
+
+### batchsize 512; adding only ReLU (this is the best one)
+
+Title: The norm of gradient 
+![](./img/minibatch512-relu/gradientPlot.png)
+
+Title: Accuracy v.s. epoch
+![](./img/minibatch512-relu/epochPlotAccuracy.png)
+
+### batchsize 2000; adding only ReLU 
+
+Title: The norm of gradient 
+![](./img/minibatch2000-relu/gradientPlot.png)
+
+Title: Accuracy v.s. epoch
+![](./img/minibatch2000-relu/epochPlotAccuracy.png)
+
 
 

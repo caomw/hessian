@@ -73,3 +73,8 @@ Log:
 00:30 Wrote line search. To do: modifiy helperFunction.lua. See the result of Raphy. 
 01:00 Modified helperFunction.lua and thus finished implementing line search. Testing out line search on mnist. Test finished. Preparing plot for meeting.
 00:40 Running experiments on Newton, linesearch, reduced model for mnist full.
+
+2016/03/22
+
+00:30 Fixed bug. Running comparison-newton-linesearch-hessianconstant
+00:30 Prepared plots for meeting.
