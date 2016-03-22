@@ -18,7 +18,7 @@ The blue dot : accuracy per epoch (I had to use a dot-representation in order to
 
 The green dot : represents either a), b), c), or d) case (described below)
 
-![](./img/mnist-full-negative-eigen/power_plot.png)
+![](./img/2016-03-21/mnist-full-negative-eigen/power_plot.png)
 
 The number of the case which...
 
@@ -40,13 +40,13 @@ Comment:
 2. Parameter Experiment 
 
 
-![](./img/mnist-parameter-experiment/parameter_test.png)
+![](./img/2016-03-21/mnist-parameter-experiment/parameter_test.png)
 
 (the plot can be reproduced by /Users/yutaro/Research/spring2016/Hessian/results/2016-03-19/plot_para_experiment.lua (with some modification of the input))
 
 3. Full sample plot  
 
-![](./img/mnist-full-negative-eigen/parameter_test.png)
+![](./img/2016-03-21/mnist-full-negative-eigen/parameter_test.png)
 
 (I stopped the regular one after 10 epochs because this was a sanity check and it keeps having better accuracy than the hessian mode)
 
@@ -66,7 +66,7 @@ This means that I need to tune the stepsize for full dataset as well. (cannot re
 
 - Setting 1 : No preprocessing. default model (2 conv and 1 fully connected)
 
-![](./img/cifar-100epoch-2000samples/gradientPlot_preprocess.png)
+![](./img/2016-03-21/cifar-100epoch-2000samples/gradientPlot_preprocess.png)
 
 x-axis: the number of parameter update
 y-axis: the norm of gradient
@@ -74,31 +74,31 @@ y-axis: the norm of gradient
 
 - Setting 2: With preprocessing. default model.
 
-![](./img/cifar-100epoch-2000samples/gradientPlot_preprocess.png)
+![](./img/2016-03-21/cifar-100epoch-2000samples/gradientPlot_preprocess.png)
 
 > plot for test error
 
-![](./img/cifar-100epoch-2000samples/epochPlotError_preprocess.png)
+![](./img/2016-03-21/cifar-100epoch-2000samples/epochPlotError_preprocess.png)
 
 - Setting 3: With preprocessing. model with ReLU.
 
-![](./img/cifar-100epoch-2000samples/gradientPlot_preprocess_relu.png)
+![](./img/2016-03-21/cifar-100epoch-2000samples/gradientPlot_preprocess_relu.png)
 
 > plot for test error
 
-![](./img/cifar-100epoch-2000samples/epochPlotError_preprocess_relu.png)
+![](./img/2016-03-21/cifar-100epoch-2000samples/epochPlotError_preprocess_relu.png)
 
 - Setting 4: With preprocessing. model with ReLU and Dropout.
 
-![](./img/cifar-100epoch-2000samples/gradientPlot_preprocess_relu_drop.png)
+![](./img/2016-03-21/cifar-100epoch-2000samples/gradientPlot_preprocess_relu_drop.png)
 
 > plot for test error
 
-![](./img/cifar-100epoch-2000samples/epochPlotError_preprocess_relu_drop.png)
+![](./img/2016-03-21/cifar-100epoch-2000samples/epochPlotError_preprocess_relu_drop.png)
 
 - Setting 5: Full sample
 
-![](./img/cifar-100epoch-50000samples/gradientPlot-2016-03-20-00:16:07.png)
+![](./img/2016-03-21/cifar-100epoch-50000samples/gradientPlot-2016-03-20-00:16:07.png)
 
 
 #2016/03/23 Meeting 03
@@ -122,42 +122,42 @@ The default setting is the following:
 ### batchsize 256; train-cifar-model.lua
 
 Title: The norm of gradient 
-![](./img/minibatch256/gradientPlot.png)
+![](./img/2016-03-23/minibatch256/gradientPlot.png)
 
 Title: Accuracy v.s. epoch
-![](./img/minibatch256/epochPlotAccuracy.png)
+![](./img/2016-03-23/minibatch256/epochPlotAccuracy.png)
 
 ### batchsize 512; train-cifar-model.lua
 
 Title: The norm of gradient 
-![](./img/minibatch512/gradientPlot.png)
+![](./img/2016-03-23/minibatch512/gradientPlot.png)
 
 Title: Accuracy v.s. epoch
-![](./img/minibatch512/epochPlotAccuracy.png)
+![](./img/2016-03-23/minibatch512/epochPlotAccuracy.png)
 
 ### batchsize 512; adding dropout and ReLU to the default model
 
 Title: The norm of gradient 
-![](./img/minibatch512-drop-relu/gradientPlot.png)
+![](./img/2016-03-23/minibatch512-drop-relu/gradientPlot.png)
 
 Title: Accuracy v.s. epoch
-![](./img/minibatch512-drop-relu/epochPlotAccuracy.png)
+![](./img/2016-03-23/minibatch512-drop-relu/epochPlotAccuracy.png)
 
 ### batchsize 512; adding only ReLU (this is the best one)
 
 Title: The norm of gradient 
-![](./img/minibatch512-relu/gradientPlot.png)
+![](./img/2016-03-23/minibatch512-relu/gradientPlot.png)
 
 Title: Accuracy v.s. epoch
-![](./img/minibatch512-relu/epochPlotAccuracy.png)
+![](./img/2016-03-23/minibatch512-relu/epochPlotAccuracy.png)
 
 ### batchsize 2000; adding only ReLU 
 
 Title: The norm of gradient 
-![](./img/minibatch2000-relu/gradientPlot.png)
+![](./img/2016-03-23/minibatch2000-relu/gradientPlot.png)
 
 Title: Accuracy v.s. epoch
-![](./img/minibatch2000-relu/epochPlotAccuracy.png)
+![](./img/2016-03-23/minibatch2000-relu/epochPlotAccuracy.png)
 
 
 
