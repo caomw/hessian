@@ -467,8 +467,8 @@ testErrTable = {}
 testAccTable = {}
 trainErrTable = {}
 trainAccTable = {}
+timer = sys.clock()      
 while true do
-   local timer = sys.clock()      
    -- train/test
    trainAcc, trainErr = train(trainData)
    testAcc,  testErr  = test (testData)

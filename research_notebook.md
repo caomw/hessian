@@ -553,3 +553,4 @@ To do: I had to resolve the nested folder issue at /Users/yutaro/Research/spring
 
 2016-03-21/gradient-minibatch-experiment for cifar10. 
 
+- time_it_took.bin is reliable after output-2016-03-22-01:30:18

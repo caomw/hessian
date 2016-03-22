@@ -46,8 +46,9 @@ local opt = lapp[[
    -g,--gradnormThresh (default 0.5)        threshold of grad norm to switch from gradient descent to hessian
    -h,--hessianMultiplier   (default 5)     will determine stepsize used for hessian mode. Stepsize = opt.learningRate * opt.hessianMultiplier
    --powermethodDelta (default 10e-6)       threshold to stop powermethod; will keep running until difference between norm_Hd and norm_Hd_old < powermethodDelta
-   --hessian'         (default false)       turn on hessian mode 
+   --hessian                                turn on hessian mode 
    --modelpath        (default "/models/train-train-model.lua") path to the model used in hessian mode; must be the same as the model used in normal training
+   --newton                                 turn on Newton-like stepsize
 ]]
 
 torch.save("parameter_info.bin",opt)
@@ -272,9 +273,7 @@ function train(dataset)
          if torch.norm(gradParameters) < opt.gradnormThresh then
              flag = flag + 1
              eigenVec, eigenVal = hessianPowermethod(inputs,targets,parameters:clone(),gradParameters:clone(),opt.powermethodDelta,opt.currentDir,opt.modelpath)
-             --parameterUpdate() -- parameters = parameters + stepSize * eigenVectors 
              eigenTable[#eigenTable+1] = eigenVal
-             stepSize = opt.learningRate * opt.hessianMultiplier 
              --if eigenVal > 0 then
              --I don't need this condition because eigenVal is always positive (absolute value)
              eigenVec2, eigenVal2 = negativePowermethod(inputs,targets,parameters:clone(),gradParameters:clone(),opt.powermethodDelta,opt.currentDir,eigenVal,opt.modelpath)
@@ -285,6 +284,10 @@ function train(dataset)
                  --outputs_before = model:forward(inputs)
                  --cost_before = criterion:forward(outputs, targets)
                  --parameters:copy(parameters + eigenVec2 * stepSize)
+                 stepSize = opt.learningRate * opt.hessianMultiplier 
+                 if opt.newton then
+                     stepSize = 1/torch.abs(eigenVal-eigenVal2)
+                 end
                  parameters:add(eigenVec2 * stepSize)
                  --outputs_after = model:forward(inputs)
                  --cost_after = criterion:forward(outputs, targets)
@@ -424,8 +427,8 @@ end
 --
 testErrTable = {} 
 testAccTable = {}
+timer = sys.clock()
 while true do
-   local timer = sys.clock()
    -- train/test  
    train(trainData)
    test(testData)
