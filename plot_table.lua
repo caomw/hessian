@@ -2,8 +2,8 @@ require 'gnuplot'
 require 'paths'
 
 local args = lapp[[
-    -i,--input1 (string)    The data 1 you want to plot
-    -j,--input2 (default '')    The data 2 you want to plot
+    -i,--input1 (string)    The data 1 you want to plot (usually train)
+    -j,--input2 (default '')    The data 2 you want to plot (usually test)
     -p,--powerRecord (default 'nil') The record of power iteration call
     -n,--name (string)     File name to save the image
     -s,--save (default 'img') Folder to save
@@ -28,10 +28,10 @@ if args.epochPlot then
 
     require 'csvigo' 
     print("ok")
-    local test = csvigo.load(args.input1)
-    test = torch.Tensor(test["test_acc"])
-    local train = csvigo.load(args.input2)
+    local train = csvigo.load(args.input1)
     train = torch.Tensor(train["train_acc"])
+    local test = csvigo.load(args.input2)
+    test = torch.Tensor(test["test_acc"])
 
     --power = torch.load(args.powerRecord)
 

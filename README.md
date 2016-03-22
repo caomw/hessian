@@ -61,3 +61,10 @@ Log:
 
 06:00 Developed runall.sh (for train_cifar.lua) so that it also incorporates plotting function for error/accuracy. Fixed bugs for ImageMagitck (convert)
 
+06:00 Prepared for meeting. Ran experiments. Organize plots. 
+
+2016/03/21
+
+01:00 Wrote a part of final report. (about today's meeting, and the next experiment I'll perform.)
+00:20 Spent 20 min to try to find a better way to visualize the negative eigenvalu v.s. epoch plot. But couldn't find the solution.
+00:45 Reduced the model size. Testing out batchsize thing in cifar. Need to test the reduced models on 2000 samples.

@@ -543,4 +543,13 @@ To do: I had to resolve the nested folder issue at /Users/yutaro/Research/spring
 ^ I resolved.
 
 
-To do: Start making a notebook for meeting. 
+#2016/03/21
+
+- made a meeting notebook in for-meeting. (I could put some of the plots in this notebook too; when I have time.)
+
+- to do : improve the plot. Especially, the negative eigenvalue thing. (in vain. couldn't find it. Ref: http://www.lighting-torch.com/2015/08/24/plotting-with-torch7/3/)
+
+- to do : change the model (reduce the parameter size) 
+
+2016-03-21/gradient-minibatch-experiment for cifar10. 
+

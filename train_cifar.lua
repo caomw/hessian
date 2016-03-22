@@ -50,6 +50,7 @@ cmd:option('-powermethodDelta', 10e-6, 'threshold to stop powermethod; will keep
 cmd:option('-preprocess', false, 'preprocess training and test data; necessary if you need more than 60/70% test accuracy.')
 cmd:option('-hessian', false, 'turn on hessian mode')
 cmd:option('-modelpath', '/models/train-cifar-model.lua', 'path to the model used in hessian mode; must be the same as the model used in normal training')
+cmd:option('-plot', false, 'turn on plotting while training')
 cmd:text()
 opt = cmd:parse(arg)
 
@@ -486,10 +487,12 @@ while true do
    trainErrTable[#trainErrTable+1] = trainErr; trainAccTable[#trainAccTable+1] = trainAcc
 
    -- plot logger
-   accLogger:style{['% train accuracy'] = '-', ['% test accuracy'] = '-'}
-   errLogger:style{['% train error']    = '-', ['% test error']    = '-'}
-   accLogger:plot()
-   errLogger:plot()
+   if opt.plot then
+     accLogger:style{['% train accuracy'] = '-', ['% test accuracy'] = '-'}
+     errLogger:style{['% train error']    = '-', ['% test error']    = '-'}
+     accLogger:plot()
+     errLogger:plot()
+   end
    if epoch > opt.maxEpoch then 
        torch.save("testErr.bin",testErrTable);torch.save("testAcc.bin",testAccTable)
        torch.save("trainErr.bin",trainErrTable);torch.save("trainAcc.bin",trainAccTable)
