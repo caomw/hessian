@@ -92,7 +92,7 @@ geometry = {32,32}
 if opt.network == '' then
    -- define model to train
    model = nn.Sequential()
-   model:read(torch.DiskFile(opt.network)) 
+   model:add(dofile(opt.currentDir .. opt.modelpath))
 else
    print('<trainer> reloading previously trained network')
    model = nn.Sequential()
