@@ -49,6 +49,7 @@ local opt = lapp[[
    --hessian                                turn on hessian mode 
    --modelpath        (default "/models/train-train-model.lua") path to the model used in hessian mode; must be the same as the model used in normal training
    --newton                                 turn on Newton-like stepsize
+   --lineSearch                             turn on lineSearch 
 ]]
 
 torch.save("parameter_info.bin",opt)
@@ -286,7 +287,23 @@ function train(dataset)
                  --parameters:copy(parameters + eigenVec2 * stepSize)
                  stepSize = opt.learningRate * opt.hessianMultiplier 
                  if opt.newton then
+                     --limit the stepSize 
                      stepSize = 1/torch.abs(eigenVal-eigenVal2)
+                 end
+                 if opt.lineSearch then
+                     local searchTable = {2^-3, 2^-2, 2^-1, 2^0, 2^1, 2^2,
+                                          -2^-3, -2^-2, -2^-1, -2^0, -2^1, -2^2}
+                     local temp_loss = 10e8
+                     for i=1,#searchTable do
+                        --local loss_before = computeCurrentLoss(inputs,targets,parameters:clone(),opt.currentDir,opt.modelpath)
+                        local linesearch_stepSize = opt.learningRate * searchTable[i]
+                        local loss_after = computeLineSearchLoss(inputs,targets,parameters:clone(),opt.currentDir,opt.modelpath,eigenVec2,linesearch_stepSize)
+                        if (loss_after - cost_before) < temp_loss then
+                            id_record = i
+                            temp_loss = loss_after - cost_before
+                        end
+                    end
+                    stepSize = opt.learningRate * searchTable[id_record]  
                  end
                  parameters:add(eigenVec2 * stepSize)
                  --outputs_after = model:forward(inputs)

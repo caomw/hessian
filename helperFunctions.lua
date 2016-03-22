@@ -14,6 +14,9 @@ function hessianPowermethod(inputs,targets,param,gradParam, delta, filepath, mod
     while (norm_Hd_old - norm_Hd) > delta do
         --print("hessianPowermethod")
         --print((norm_Hd_old-norm_Hd))
+        print("param_new size ") ; print(param_new:size())
+        print("param size "); print(param:size())
+        print("vector d size"); print(d:size())
         param_new:copy(param + d * epsilon)
 
         --reset gradients
@@ -98,6 +101,25 @@ function computeCurrentLoss(inputs,targets,parameters,filepath,modelpath)
 
     return loss
 end
+
+function computeLineSearchLoss(inputs,targets,parameters,filepath,modelpath,eigenVector,stepSize)
+    local model = nn.Sequential()
+    model:add(dofile(filepath .. modelpath))
+    model:add(nn.LogSoftMax())
+    local criterion = nn.ClassNLLCriterion()
+
+    local param_new,gradParam_eps = model:getParameters() --I need to do this
+    param_new:copy(parameters)
+    param_new:add(eigenVector*stepSize)
+
+    outputs = model:forward(inputs)
+    loss = criterion:forward(outputs, targets)
+    df_do = criterion:backward(outputs, targets)
+    model:backward(inputs, df_do) --gradParams_eps should be updated here 
+
+    return loss
+end
+
 
 function checkModelID()
     model = nn.Sequential()

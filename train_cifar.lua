@@ -51,6 +51,7 @@ cmd:option('-preprocess', false, 'preprocess training and test data; necessary i
 cmd:option('-hessian', false, 'turn on hessian mode')
 cmd:option('-modelpath', '/models/train-cifar-model.lua', 'path to the model used in hessian mode; must be the same as the model used in normal training')
 cmd:option('-plot', false, 'turn on plotting while training')
+cmd:option('-newton',false, 'turn on newton-like stepsize')
 cmd:text()
 opt = cmd:parse(arg)
 
@@ -325,13 +326,16 @@ function train(dataset)
              eigenVec, eigenVal = hessianPowermethod(inputs,targets,parameters:clone(),gradParameters:clone(),opt.powermethodDelta,opt.currentDir,opt.modelpath)
 
              eigenTable[#eigenTable+1] = eigenVal 
-             stepSize = opt.learningRate * opt.hessianMultiplier
              eigenVec2, eigenVal2 = negativePowermethod(inputs,targets,parameters:clone(),gradParameters:clone(),opt.powermethodDelta,opt.currentDir,eigenVal,opt.modelpath)
              if eigenVal2 > eigenVal then --the Hessian has a negative eigenvalue so we should proceed to this direction
                  flag = flag + 1
                  eigenTableNeg[#eigenTableNeg+1] = eigenVal - eigenVal2
 
                  cost_before = computeCurrentLoss(inputs,targets,parameters:clone(),opt.currentDir,opt.modelpath)
+                 stepSize = opt.learningRate * opt.hessianMultiplier
+                 if opt.newton then
+                     stepSize = 1/torch.abs(eigenVal-eigenVal2)
+                 end
                  parameters:add(eigenVec2 * stepSize)
                  cost_after = computeCurrentLoss(inputs,targets,parameters:clone(),opt.currentDir,opt.modelpath)
                  cost_before_acc[#cost_before_acc+1] = cost_before

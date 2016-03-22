@@ -101,3 +101,7 @@ y-axis: the norm of gradient
 ![](./img/cifar-100epoch-50000samples/gradientPlot-2016-03-20-00:16:07.png)
 
 
+#2016/03/23 Meeting 03
+
+
+
