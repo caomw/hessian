@@ -105,7 +105,7 @@ y-axis: the norm of gradient
 
 #2016/03/23 Meeting 03
 
-## The norm of gradient in CIFAR-10 with different minibatch size
+## Experiment1: The norm of gradient in CIFAR-10 with different minibatch size
 
 This experiment shows how the norm of gradient will be accurate as I increase the size of minibatch in CIFAR-10. The following plots show that the norm of gradient gets close to zero as the training goes on. All the results can be reproduced at 
 
@@ -162,7 +162,7 @@ Title: Accuracy v.s. epoch
 ![](./img/2016-03-23/minibatch2000-relu/epochPlotAccuracy.png)
 
 
-## Line Search Test
+## Experiment2: Line Search Test
 
 This experiment compares the accuracy between line-search and constant*learningRate after 100 epochs, using the 2000 data samples of MNIST, where constant = 1 in this experiment.  
 
@@ -184,14 +184,103 @@ The number of the case in which...
 
 ### Plot
 
-To do: generate the plot that compares this with the regular one
-
 > command 
+
+```
 > th ../../../src/plot_table.lua -xlabel "epoch" -ylabel "accuracy" -input1 baseline-100epoch-output-2016-03-22-04\:56\:28/logs/test.csv  -input2 linesearch-100epoch-output-2016-03-22-04\:19\:57/logs/test.csv -epochCompareTestAcc -name "plot.eps" -compareName1 "baseline" -compareName2 "linesearch"
 > convert -density 150 plot.eps hoge.png
 > convert hoge.png -background white -flatten -alpha off plot.png
+```
 
-![](./img/2016-03-23/linesearch-experiment/plot.png)
+> Setting 
+
+```
+ gradnormThresh : 0.01
+ learningRate : 0.05
+ batchSize : 10
+```
+
+> Time it took
+
+```
+linesearch : 24.5 min 
+learningRate*constant : 14 min
+```
+
+![](./img/2016-03-23/linesearch-experiment/line-lr-base-compare.png)
+
+The norm of gradient in linesearch.
+
+![](./img/2016-03-23/linesearch-experiment/gradientPlot.png)
 
 
+
+## Experiment3: Comparison between Newton / LineSearch / constant*learningRate
+
+> Setting 1
+
+```
+  gradnormThresh : 0.01
+  learningRate : 0.05
+  hessianMultiplier : 10
+  hessian : true
+  batchSize : 200
+  full : true
+  modelpath : "/models/reduced-train-mnist-model.lua"
+  lineSearch : true
+  newton : false
+  maxEpoch : 100
+```
+
+(Sanity check for the Hd/d (constant or not) passed)
+
+
+![](./img/2016-03-23/comparison/setting1/plot_linesearch_vs_base.png)
+
+They look almost the same. I suspect that this is because the number of times that the algorithm was called was very small, as confirmed by the information below. 
+
+The number of the case in which...  
+
+- a) The norm of gradient is close to zero : 62/30000   
+
+- b) The second test passed (L > M) : 62/30000  
+
+- c) The cost function decreases: 62/30000  
+
+- d) The cost function increases: 0/30000
+
+
+The reason why this happened can be explained by the following plot, where x-axis is the number of update and y-axis is the norm of gradient.
+
+![](./img/2016-03-23/comparison/setting1/plot-2016-03-23-07:41:22.png)
+
+This suggests that the gradnormThresh (in this case 0.01) might have been too big.
+
+
+- Possible solutions: 
+
+- make the gradient norm threshold bigger? But this could potentially be harmful because it means we are switching to our algorithm while SGD could still work.
+
+- increase minibatch size to have better approximation of gradient? (This is a trade-off of sacrifying the number of parameter updates)
+
+- reduce more parameters in the model? (although I already removed one of the fully connected layer, I should first try increasing the minibatch size.)
+
+
+> Setting 2
+
+```
+  gradnormThresh : 0.01
+  learningRate : 0.05
+  hessianMultiplier : 1
+  hessian : true
+  batchSize : 100
+  full : true
+  modelpath : "/models/reduced-train-mnist-model.lua"
+  lineSearch : true
+  maxEpoch : 100
+```
+
+![](./img/2016-03-23/comparison/setting2/plot23.png")
+
+..
 

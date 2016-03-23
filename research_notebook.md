@@ -580,3 +580,5 @@ Also
 
 
 - To do : I should code up for CUDA mode in train_mnist.lua and cifar.lua
+
+- To do: incorporate the saving function (stepsize) Done. When I restart the experiment, I should first git pull in the Raphy repo. And then delete the hessian*constant part. 

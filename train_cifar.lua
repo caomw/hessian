@@ -243,6 +243,9 @@ cost_after_acc = {}
 eigenTable = {}
 eigenTableNeg = {}
 powercallRecord = {}
+--Need to code up opt.lineSearch
+eigenVal_vectorTable = {}
+eigenVal_vectorTable2 = {}
 
 -- training function
 function train(dataset)
@@ -323,10 +326,13 @@ function train(dataset)
             local flag = 0
             if torch.norm(gradParameters) < opt.gradnormThresh then
              flag = flag + 1
-             eigenVec, eigenVal = hessianPowermethod(inputs,targets,parameters:clone(),gradParameters:clone(),opt.powermethodDelta,opt.currentDir,opt.modelpath)
-
+             eigenVec, eigenVal_vector = hessianPowermethod(inputs,targets,parameters:clone(),gradParameters:clone(),opt.powermethodDelta,opt.currentDir,opt.modelpath)
+             if torch.sum(eigenVal_vector)/eigenVal_vector:size(1)  - eigenVal_vector[1] > 10e-4 then eigenVal_vectorTable[#eigenVal_vectorTable+1] = eigenVal_vector end
+             eigenVal = eigenVal_vector[1]
              eigenTable[#eigenTable+1] = eigenVal 
              eigenVec2, eigenVal2 = negativePowermethod(inputs,targets,parameters:clone(),gradParameters:clone(),opt.powermethodDelta,opt.currentDir,eigenVal,opt.modelpath)
+             if torch.sum(eigenVal_vector2)/eigenVal_vector2:size(1)  - eigenVal_vector2[1] > 10e-4 then eigenVal_vectorTable2[#eigenVal_vectorTable2+1] = eigenVal_vector2 end
+             eigenVal2 = eigenVal_vector2[1] 
              if eigenVal2 > eigenVal then --the Hessian has a negative eigenvalue so we should proceed to this direction
                  flag = flag + 1
                  eigenTableNeg[#eigenTableNeg+1] = eigenVal - eigenVal2
@@ -482,6 +488,8 @@ while true do
    torch.save("eigenTable.bin",eigenTable)
    torch.save("eigenTableNeg.bin",eigenTableNeg)
    torch.save("powercallRecord.bin",powercallRecord)
+   torch.save("eigenVal_vectorTable.bin",eigenVal_vectorTable) 
+   torch.save("eigenVal_vectorTable2.bin",eigenVal_vectorTable2)
 
    -- update logger
    accLogger:add{['% train accuracy'] = trainAcc, ['% test accuracy'] = testAcc}

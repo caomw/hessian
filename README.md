@@ -85,4 +85,4 @@ Log:
 
 00:30 Fixed bug. Running comparison-newton-linesearch-hessianconstant
 
-03:00 Prepared plots for meeting.
+04:15 Prepared plots for meeting. Running comparison-newton-linesearch-hessianconstant

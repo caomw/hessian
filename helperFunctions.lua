@@ -14,9 +14,6 @@ function hessianPowermethod(inputs,targets,param,gradParam, delta, filepath, mod
     while (norm_Hd_old - norm_Hd) > delta do
         --print("hessianPowermethod")
         --print((norm_Hd_old-norm_Hd))
-        print("param_new size ") ; print(param_new:size())
-        print("param size "); print(param:size())
-        print("vector d size"); print(d:size())
         param_new:copy(param + d * epsilon)
 
         --reset gradients
@@ -40,7 +37,7 @@ function hessianPowermethod(inputs,targets,param,gradParam, delta, filepath, mod
 
     --print("sanity check")
     --print(torch.cdiv(Hd,d))
-    return d , torch.cdiv(Hd,d)[1] 
+    return d , torch.cdiv(Hd,d)
 end
 
 function negativePowermethod(inputs,targets,param,gradParam, delta, filepath,eigen,modelpath) 
@@ -82,7 +79,7 @@ function negativePowermethod(inputs,targets,param,gradParam, delta, filepath,eig
 
     --print("sanity check")
     --print(torch.cdiv(Md,d))
-    return d , torch.cdiv(Md,d)[1] 
+    return d , torch.cdiv(Md,d)
 end
 
 function computeCurrentLoss(inputs,targets,parameters,filepath,modelpath)
@@ -96,8 +93,8 @@ function computeCurrentLoss(inputs,targets,parameters,filepath,modelpath)
 
     outputs = model:forward(inputs)
     loss = criterion:forward(outputs, targets)
-    df_do = criterion:backward(outputs, targets)
-    model:backward(inputs, df_do) --gradParams_eps should be updated here 
+    --df_do = criterion:backward(outputs, targets)
+    --model:backward(inputs, df_do) --gradParams_eps should be updated here 
 
     return loss
 end
@@ -114,8 +111,8 @@ function computeLineSearchLoss(inputs,targets,parameters,filepath,modelpath,eige
 
     outputs = model:forward(inputs)
     loss = criterion:forward(outputs, targets)
-    df_do = criterion:backward(outputs, targets)
-    model:backward(inputs, df_do) --gradParams_eps should be updated here 
+    --df_do = criterion:backward(outputs, targets)
+    --model:backward(inputs, df_do) --gradParams_eps should be updated here 
 
     return loss
 end
