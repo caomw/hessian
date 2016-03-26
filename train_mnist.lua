@@ -239,13 +239,15 @@ function train(dataset)
          if torch.norm(gradParameters) < opt.gradnormThresh then
              flag = flag + 1
              eigenVec, eigenVal_vector = hessianPowermethod(inputs,targets,parameters:clone(),gradParameters:clone(),opt.powermethodDelta,opt.currentDir,opt.modelpath)
-             if torch.sum(eigenVal_vector)/eigenVal_vector:size(1)  - eigenVal_vector[1] > 10e-4 then eigenVal_vectorTable[#eigenVal_vectorTable+1] = eigenVal_vector end
+             --if torch.sum(eigenVal_vector)/eigenVal_vector:size(1)  - eigenVal_vector[1] > 10e-4 then eigenVal_vectorTable[#eigenVal_vectorTable+1] = eigenVal_vector end
+             eigenVal_vectorTable[#eigenVal_vectorTable+1] = eigenVal_vector
              eigenVal = eigenVal_vector[1]
              eigenTable[#eigenTable+1] = eigenVal
              --if eigenVal > 0 then
              --I don't need this condition because eigenVal is always positive (absolute value)
              eigenVec2, eigenVal_vector2 = negativePowermethod(inputs,targets,parameters:clone(),gradParameters:clone(),opt.powermethodDelta,opt.currentDir,eigenVal,opt.modelpath)
-             if torch.sum(eigenVal_vector2)/eigenVal_vector2:size(1)  - eigenVal_vector2[1] > 10e-4 then eigenVal_vectorTable2[#eigenVal_vectorTable2+1] = eigenVal_vector2 end
+             --if torch.sum(eigenVal_vector2)/eigenVal_vector2:size(1)  - eigenVal_vector2[1] > 10e-4 then eigenVal_vectorTable2[#eigenVal_vectorTable2+1] = eigenVal_vector2 end
+             eigenVal_vectorTable2[#eigenVal_vectorTable2+1] = eigenVal_vector2
              eigenVal2 = eigenVal_vector2[1]
              if eigenVal2 > eigenVal then --the Hessian has a negative eigenvalue so we should proceed to this direction
                  flag = flag + 1
@@ -260,7 +262,7 @@ function train(dataset)
                      stepSize = 1/torch.abs(eigenVal-eigenVal2)
                  end
                  if opt.lineSearch then
-                     local searchTable = {2^-3, 2^-2, 2^-1, 2^0, 2^1, 2^2,
+                     local searchTable = {2^-4, 2^-3, 2^-2, 2^-1, 2^0, 2^1, 2^2,
                                           -2^-3, -2^-2, -2^-1, -2^0, -2^1, -2^2}
                      local temp_loss = 10e8
                      for i=1,#searchTable do

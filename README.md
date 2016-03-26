@@ -85,4 +85,17 @@ Log:
 
 00:30 Fixed bug. Running comparison-newton-linesearch-hessianconstant
 
-04:15 Prepared plots for meeting. Running comparison-newton-linesearch-hessianconstant
+05:00 Prepared plots for meeting. Running comparison-newton-linesearch-hessianconstant
+
+2016/03/23
+
+03:00 Trying to fix bug(numerical instability) of power method
+01:00 Read about Lanczos method
+00:30 Implemented more accurate finite difference 
+To do: change f(thing) - f(ff) -> f(theta+eps) - f(theta-eps) / 2eps
+
+2016/03/24
+
+01:30 Lanczos method. 
+01:25 Implement Lanczos method
+
