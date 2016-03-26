@@ -1,5 +1,68 @@
 require 'nn'
 function hessianPowermethod(inputs,targets,param,gradParam, delta, filepath, modelpath) 
+    local maxIter = 20
+    local epsilon = 10e-8 -- for numerical differentiation to get Hd 
+    local model_a = nn.Sequential()
+    model_a:add(dofile(filepath .. modelpath))
+    model_a:add(nn.LogSoftMax())
+    local model_b = nn.Sequential()
+    model_b:add(dofile(filepath .. modelpath))
+    model_b:add(nn.LogSoftMax())
+    local criterion = nn.ClassNLLCriterion()
+    local d = torch.randn(param:size()) 
+    --print(d:size())
+    
+    local d_old = d*10; 
+    local param_new_a,gradParam_eps_a = model_a:getParameters() 
+    local param_new_b,gradParam_eps_b = model_b:getParameters() --I need to do this
+    -- in order to reflect loading a new parameter set
+    local numIters = 0
+    while torch.norm(d - d_old) > delta and numIters < maxIter do
+        numIters = numIters+1
+        --print(numIters) --comment this out
+        param_new_a:copy(param + d * epsilon)
+        param_new_b:copy(param - d * epsilon)
+
+        --reset gradients
+        gradParam_eps_a:zero()
+        gradParam_eps_b:zero()
+        
+        epsilon = 2*torch.sqrt(10e-7)*(1 + torch.norm(param))/torch.norm(d)
+
+
+        --feedforward and backpropagation
+        local outputs = model_a:forward(inputs)
+        --local outputs_b = model_b:forward(inputs)
+        local f = criterion:forward(outputs, targets)
+        local df_do = criterion:backward(outputs, targets)
+        model_a:backward(inputs, df_do) --gradParams_eps should be updated here 
+        
+        local outputs = model_b:forward(inputs)
+        --local outputs_b = model_b:forward(inputs)
+        local f = criterion:forward(outputs, targets)
+        local df_do = criterion:backward(outputs, targets)
+        model_b:backward(inputs, df_do) --gradParams_eps should be updated here 
+
+        Hd = (gradParam_eps_a - gradParam_eps_b) / (2*epsilon)
+        norm_Hd = torch.norm(Hd)
+        -- normalize the resultant vector to a unit vector
+        -- for the next iteration
+        d_old = d
+        d = Hd / norm_Hd
+        --print(torch.norm(d-d_old))
+    end
+    Hd = (gradParam_eps_a - gradParam_eps_b) / (2*epsilon)
+    
+    lambda = torch.dot(d, Hd)
+    converged = true
+    if numIters == maxIters
+        then converged = false
+    end
+    return d , Hd, lambda, iConverged
+end
+
+--original. I changed this from hessianPowermethod to hessianPowerMethod to deactivate it. 2016/03/25
+function hessianPowerMethod(inputs,targets,param,gradParam, delta, filepath, modelpath) 
     local max_iter = 30
     local epsilon = 10e-8 -- for numerical differentiation to get Hd 
     -- call the model from src/model 
@@ -110,7 +173,70 @@ function hessianPowermethod2(inputs,targets,param,gradParam, delta, filepath, mo
     return d , torch.cdiv(Hd,d)
 end
 
-function negativePowermethod(inputs,targets,param,gradParam, delta, filepath,eigenVal,modelpath) 
+function negativePowermethod(inputs,targets,param,gradParam, delta, filepath, mEigVal, modelpath) 
+    local maxIter = 20
+    local epsilon = 10e-8 -- for numerical differentiation to get Hd 
+    
+    local criterion = nn.ClassNLLCriterion()
+    local model_a = nn.Sequential()
+    model_a:add(dofile(filepath .. modelpath))
+    model_a:add(nn.LogSoftMax())
+    local model_b = nn.Sequential()
+    model_b:add(dofile(filepath .. modelpath))
+    model_b:add(nn.LogSoftMax())
+    local d = torch.randn(param:size()) --need to check
+    --print(d:size())
+    
+    local d_old = d*10; 
+    local param_new_a,gradParam_eps_a = model_a:getParameters() --I need to do this
+    local param_new_b,gradParam_eps_b = model_b:getParameters() --I need to do this
+    -- in order to reflect loading a new parameter set
+    local numIters = 0
+    while torch.norm(d - d_old) > delta and numIters < maxIter do
+        numIters = numIters+1
+        --print(numIters)
+        param_new_a:copy(param + d * epsilon)
+        param_new_b:copy(param - d * epsilon)
+
+        --reset gradients
+        gradParam_eps_a:zero()
+        gradParam_eps_b:zero()
+        
+        epsilon = 2*torch.sqrt(10e-7)*(1 + torch.norm(param))/torch.norm(d)
+
+
+        --feedforward and backpropagation
+        local outputs = model_a:forward(inputs)
+        --local outputs_b = model_b:forward(inputs)
+        local f = criterion:forward(outputs, targets)
+        local df_do = criterion:backward(outputs, targets)
+        model_a:backward(inputs, df_do) --gradParams_eps should be updated here 
+        
+        local outputs = model_b:forward(inputs)
+        --local outputs_b = model_b:forward(inputs)
+        local f = criterion:forward(outputs, targets)
+        local df_do = criterion:backward(outputs, targets)
+        model_b:backward(inputs, df_do) --gradParams_eps should be updated here 
+
+        Hd = (gradParam_eps_a - gradParam_eps_b) / (2*epsilon)
+        norm_Hd = torch.norm(Hd)
+        -- normalize the resultant vector to a unit vector
+        -- for the next iteration
+        d_old = d
+        Md = d*mEigVal - Hd
+        d = Md / torch.norm(Md)
+        --print(torch.norm(d-d_old))
+    end
+    lambda = torch.dot(d, Md)
+    if numIters == maxIters
+        then converged = false
+    end
+    return d , Md, Hd, lambda, converged
+    --]]
+end
+
+--original. I changed this from negativePowermethod to negativePowerMethod to deactivate it. 2016/03/25
+function negativePowerMethod(inputs,targets,param,gradParam, delta, filepath,eigenVal,modelpath) 
     local max_iter = 100 
     local epsilon = 10e-8 -- for numerical differentiation to get Hd
     -- call the model from src/model 
