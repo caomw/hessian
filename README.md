@@ -99,3 +99,11 @@ To do: change f(thing) - f(ff) -> f(theta+eps) - f(theta-eps) / 2eps
 01:30 Lanczos method. 
 01:25 Implement Lanczos method
 
+
+2016/03/25
+
+01:00 Ran the experiment. Fixed the bug in powermethod
+
+2016/03/26
+
+00:20 Plot

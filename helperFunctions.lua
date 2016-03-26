@@ -1,24 +1,25 @@
 require 'nn'
 function hessianPowermethod(inputs,targets,param,gradParam, delta, filepath, modelpath) 
     local maxIter = 20
-    local epsilon = 10e-8 -- for numerical differentiation to get Hd 
-    local model_a = nn.Sequential()
+    local criterion = nn.ClassNLLCriterion()
+    local model_a = nn.Sequential()                                                                                                                                                
     model_a:add(dofile(filepath .. modelpath))
     model_a:add(nn.LogSoftMax())
     local model_b = nn.Sequential()
     model_b:add(dofile(filepath .. modelpath))
     model_b:add(nn.LogSoftMax())
-    local criterion = nn.ClassNLLCriterion()
-    local d = torch.randn(param:size()) 
+    local d = torch.randn(param:size()) --need to check
     --print(d:size())
     
     local d_old = d*10; 
-    local param_new_a,gradParam_eps_a = model_a:getParameters() 
+    local param_new_a,gradParam_eps_a = model_a:getParameters() --I need to do this
     local param_new_b,gradParam_eps_b = model_b:getParameters() --I need to do this
     -- in order to reflect loading a new parameter set
     local numIters = 0
     while torch.norm(d - d_old) > delta and numIters < maxIter do
         numIters = numIters+1
+        epsilon = 2*torch.sqrt(10e-7)*(1 + torch.norm(param))/torch.norm(d)
+
         --print(numIters) --comment this out
         param_new_a:copy(param + d * epsilon)
         param_new_b:copy(param - d * epsilon)
@@ -27,7 +28,6 @@ function hessianPowermethod(inputs,targets,param,gradParam, delta, filepath, mod
         gradParam_eps_a:zero()
         gradParam_eps_b:zero()
         
-        epsilon = 2*torch.sqrt(10e-7)*(1 + torch.norm(param))/torch.norm(d)
 
 
         --feedforward and backpropagation
@@ -51,7 +51,6 @@ function hessianPowermethod(inputs,targets,param,gradParam, delta, filepath, mod
         d = Hd / norm_Hd
         --print(torch.norm(d-d_old))
     end
-    Hd = (gradParam_eps_a - gradParam_eps_b) / (2*epsilon)
     
     lambda = torch.dot(d, Hd)
     converged = true
@@ -60,6 +59,7 @@ function hessianPowermethod(inputs,targets,param,gradParam, delta, filepath, mod
     end
     return d , Hd, lambda, iConverged
 end
+
 
 --original. I changed this from hessianPowermethod to hessianPowerMethod to deactivate it. 2016/03/25
 function hessianPowerMethod(inputs,targets,param,gradParam, delta, filepath, modelpath) 
@@ -174,9 +174,7 @@ function hessianPowermethod2(inputs,targets,param,gradParam, delta, filepath, mo
 end
 
 function negativePowermethod(inputs,targets,param,gradParam, delta, filepath, mEigVal, modelpath) 
-    local maxIter = 20
-    local epsilon = 10e-8 -- for numerical differentiation to get Hd 
-    
+    local maxIter = 20    
     local criterion = nn.ClassNLLCriterion()
     local model_a = nn.Sequential()
     model_a:add(dofile(filepath .. modelpath))
@@ -194,6 +192,7 @@ function negativePowermethod(inputs,targets,param,gradParam, delta, filepath, mE
     local numIters = 0
     while torch.norm(d - d_old) > delta and numIters < maxIter do
         numIters = numIters+1
+        epsilon = 2*torch.sqrt(10e-7)*(1 + torch.norm(param))/torch.norm(d)
         --print(numIters)
         param_new_a:copy(param + d * epsilon)
         param_new_b:copy(param - d * epsilon)
@@ -202,8 +201,6 @@ function negativePowermethod(inputs,targets,param,gradParam, delta, filepath, mE
         gradParam_eps_a:zero()
         gradParam_eps_b:zero()
         
-        epsilon = 2*torch.sqrt(10e-7)*(1 + torch.norm(param))/torch.norm(d)
-
 
         --feedforward and backpropagation
         local outputs = model_a:forward(inputs)
