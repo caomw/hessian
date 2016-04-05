@@ -106,4 +106,13 @@ To do: change f(thing) - f(ff) -> f(theta+eps) - f(theta-eps) / 2eps
 
 2016/03/26
 
-00:20 Plot
+00:40 Prepared Plot. Ran another experiment.
+
+2016/03/27
+
+00:40 Prepared plot.
+
+
+2016/04/04
+
+02:00 Fixed bug. Incorporate Uri's code. Ran a bunch of test experiments.
