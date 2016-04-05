@@ -35,7 +35,7 @@ local opt = lapp[[
    -p,--plot                                plot while training
    -o,--optimization  (default "SGD")       optimization: SGD | LBFGS 
    -r,--learningRate  (default 0.05)        learning rate, for SGD only
-   -b,--batchSize     (default 10)          batch size
+   -b,--batchSize     (default 250)          batch size
    -m,--momentum      (default 0)           momentum, for SGD only
    -i,--maxIter       (default 3)           maximum nb of iterations per batch, for LBFGS
    --coefL1           (default 0)           L1 penalty on the weights
@@ -43,9 +43,10 @@ local opt = lapp[[
    -t,--threads       (default 4)           number of threads
    -e,--maxEpoch      (default 50)          maximum number of epochs to run
    -c,--currentDir    (default "foo")          current directory that is executed this script
-   -g,--gradnormThresh (default 0.5)        threshold of grad norm to switch from gradient descent to hessian
+   -i, --iterationMethod (default "power")  eigenvalue iteration method (Power or Lanczos)
+   -g,--gradNormThresh (default 0.1)        threshold of grad norm to switch from gradient descent to hessian
    -h,--hessianMultiplier   (default 5)     will determine stepsize used for hessian mode. Stepsize = opt.learningRate * opt.hessianMultiplier
-   --powermethodDelta (default 10e-6)       threshold to stop powermethod; will keep running until difference between norm_Hd and norm_Hd_old < powermethodDelta
+   --iterMethodDelta (default 10e-10)       threshold to stop iteration method; will keep running until norm(Av - lambda v)<delta or until max number of iterations is exceeded
    --hessian                                turn on hessian mode 
    --modelpath        (default "/models/train-train-model.lua") path to the model used in hessian mode; must be the same as the model used in normal training
    --newton                                 turn on Newton-like stepsize
@@ -58,10 +59,10 @@ local dataset_filepath =  opt.currentDir .. '/dataset-mnist.lua'
 --print(dataset_filepath)
 dofile(dataset_filepath)
 
-local hessian_filepath = opt.currentDir .. '/helperFunctions.lua'
-dofile(hessian_filepath)
---local hessian2_filepath = opt.currentDir .. '/test/negativePowermethod.lua'
---dofile(hessian2_filepath)
+local iterationMethods_filepath = opt.currentDir .. '/iterationMethods.lua'
+dofile(iterationMethods_filepath)
+--local hessian_filepath = opt.currentDir .. '/helperFunctions.lua'
+--dofile(hessian_filepath)
 
 -- fix seed
 torch.manualSeed(1)
@@ -70,9 +71,10 @@ torch.manualSeed(1)
 torch.setnumthreads(opt.threads)
 print('<torch> set nb of threads to ' .. torch.getnumthreads())
 
--- use floats, for SGD
+-- use doubles, for SGD
 if opt.optimization == 'SGD' then
-   torch.setdefaulttensortype('torch.FloatTensor')
+   --torch.setdefaulttensortype('torch.FloatTensor')
+   torch.setdefaulttensortype('torch.DoubleTensor')
 end
 
 -- batch size?
@@ -236,65 +238,74 @@ function train(dataset)
 
          if opt.hessian then
              local flag = 0
-         if torch.norm(gradParameters) < opt.gradnormThresh then
-             flag = flag + 1
-             eigenVec,Hv,eigenVal,converged = hessianPowermethod(inputs,targets,parameters:clone(),gradParameters:clone(),opt.powermethodDelta,opt.currentDir,opt.modelpath)
-             convergeTable1[#convergeTable1+1] = converged
-             eigenTable[#eigenTable+1] = eigenVal
-             eigenVec2,Mv,Hv,eigenVal2,converged = negativePowermethod(inputs,targets,parameters:clone(),gradParameters:clone(),opt.powermethodDelta,opt.currentDir,eigenVal,opt.modelpath)
-             convergeTable2[#convergeTable2+1] = converged
-             --if torch.sum(eigenVal_vector2)/eigenVal_vector2:size(1)  - eigenVal_vector2[1] > 10e-4 then eigenVal_vectorTable2[#eigenVal_vectorTable2+1] = eigenVal_vector2 end
-             --eigenVal_vectorTable2[#eigenVal_vectorTable2+1] = eigenVal_vector2
-             --eigenVal2 = eigenVal_vector2[1]
-             if eigenVal2 > eigenVal then --the Hessian has a negative eigenvalue so we should proceed to this direction
-                 flag = flag + 1
-                 eigenTableNeg[#eigenTableNeg+1] = eigenVal - eigenVal2 --smallest eigenvalue of H; should be of less magnitude than eigenVal
-                 cost_before = computeCurrentLoss(inputs,targets,parameters:clone(),opt.currentDir,opt.modelpath) 
-                 --outputs_before = model:forward(inputs)
-                 --cost_before = criterion:forward(outputs, targets)
-                 --parameters:copy(parameters + eigenVec2 * stepSize)
-                 stepSize = opt.learningRate * opt.hessianMultiplier 
-                 if opt.newton then
-                     --limit the stepSize 
-                     stepSize = 1/torch.abs(eigenVal-eigenVal2)
-                 end
-                 if opt.lineSearch then
-                     local searchTable = {2^-3, 2^-2, 2^-1, 2^0, 2^1, 2^2,
-                                          -2^-3, -2^-2, -2^-1, -2^0, -2^1, -2^2}
-                     local temp_loss = 10e8
-                     for i=1,#searchTable do
-                        --local loss_before = computeCurrentLoss(inputs,targets,parameters:clone(),opt.currentDir,opt.modelpath)
-                        local linesearch_stepSize = opt.learningRate * searchTable[i]
-                        local loss_after = computeLineSearchLoss(inputs,targets,parameters:clone(),opt.currentDir,opt.modelpath,eigenVec2,linesearch_stepSize)
-                        if (loss_after - cost_before) < temp_loss then
-                            id_record = i
-                            temp_loss = loss_after - cost_before
-                        end
-                    end
-                    stepSize = opt.learningRate * searchTable[id_record]  
-                    lineSearchDescisionTable[#lineSearchDescisionTable+1] = stepSize
-                 end
-                 parameters:add(eigenVec2 * stepSize)
-                 --outputs_after = model:forward(inputs)
-                 --cost_after = criterion:forward(outputs, targets)
-                 cost_after = computeCurrentLoss(inputs,targets,parameters:clone(),opt.currentDir,opt.modelpath) 
-                 --print("cost_before")
-                 --print(cost_before)
-                 cost_before_acc[#cost_before_acc+1] = cost_before
-                 --print("cost_after")
-                 --print(cost_after)
-                 cost_after_acc[#cost_after_acc+1] = cost_after
-                 if cost_before > cost_after then flag = flag + 1 end
-                 --sleep(2)
-             end
-             --print("eigenvalue")
-             --print(eigenVal)
-             --print("eigenvalue")
-             --print(eigenVec)
-             --torch.save("eigenVec_10-8.bin",eigenVec)
-             ----os.exit()
-         end
-            powercallRecord[#powercallRecord+1] = flag
+	 if torch.norm(gradParameters) < opt.gradNormThresh then
+	     flag = flag + 1
+	 -- First iteration method
+	 if opt.iterationMethod =="power" then
+	     maxEigValH, v, converged = hessianPowermethod(inputs,targets,parameters:clone(),gradParameters:clone(),opt.iterMethodDelta,opt.currentDir,opt.modelpath)
+	 end
+	 if opt.iterationMethod =="lanczos" then
+	     maxEigValH, v, converged1 = lanczos(inputs,targets,parameters:clone(),gradParameters:clone(),opt.iterMethodDelta,opt.currentDir,opt.modelpath)
+	 end
+	 convergeTable1[#convergeTable1+1] = converged1
+	 eigenTable[#eigenTable+1] = maxEigValH
+	 -- Second iteration method
+	 if opt.iterationMethod =="power" then  
+	     minEigValH, v, converged = negativePowermethod(inputs,targets,parameters:clone(),gradParameters:clone(),opt.iterMethodDelta,opt.currentDir,maxEigValH,opt.modelpath)
+	 end
+	 if opt.iterationMethod =="lanczos"  then 
+	     minEigValH, v, converged2 = negativeLanczos(inputs,targets,parameters:clone(),gradParameters:clone(),opt.iterMethodDelta,opt.currentDir,maxEigValH,opt.modelpath)
+	 end
+	 convergeTable2[#convergeTable2+1] = converged2
+	 eigenTableNeg[#eigenTable+1] = minEigValH
+	     if minEigValH < 0 and converged1 and converged2 then --the Hessian has a reliable negative eigenvalue so we should proceed to this direction
+	         flag = flag + 1
+	         cost_before = computeCurrentLoss(inputs,targets,parameters:clone(),opt.currentDir,opt.modelpath) 
+	         --outputs_before = model:forward(inputs)
+	         --cost_before = criterion:forward(outputs, targets)
+	         --parameters:copy(parameters + eigenVec2 * stepSize)
+	         stepSize = opt.learningRate * opt.hessianMultiplier 
+	         if opt.newton then
+	             --limit the stepSize 
+	             stepSize = 1/torch.abs(minEigValH)
+	         end
+	         if opt.lineSearch then
+	             local searchTable = {2^-3, 2^-2, 2^-1, 2^0, 2^1, 2^2,
+	                                  -2^-3, -2^-2, -2^-1, -2^0, -2^1, -2^2}
+	             local temp_loss = 10e8
+	             for i=1,#searchTable do
+	                --local loss_before = computeCurrentLoss(inputs,targets,parameters:clone(),opt.currentDir,opt.modelpath)
+	                local linesearch_stepSize = opt.learningRate * searchTable[i]
+	                local loss_after = computeLineSearchLoss(inputs,targets,parameters:clone(),opt.currentDir,opt.modelpath,v,linesearch_stepSize)
+	                if (loss_after - cost_before) < temp_loss then
+	                    id_record = i
+	                    temp_loss = loss_after - cost_before
+	                end
+	            end
+	            stepSize = opt.learningRate * searchTable[id_record]  
+	            lineSearchDescisionTable[#lineSearchDescisionTable+1] = stepSize
+	         end
+	         parameters:add(v * stepSize)
+	         --outputs_after = model:forward(inputs)
+	         --cost_after = criterion:forward(outputs, targets)
+	         cost_after = computeCurrentLoss(inputs,targets,parameters:clone(),opt.currentDir,opt.modelpath) 
+	         --print("cost_before")
+	         --print(cost_before)
+	         cost_before_acc[#cost_before_acc+1] = cost_before
+	         --print("cost_after")
+	         --print(cost_after)
+	         cost_after_acc[#cost_after_acc+1] = cost_after
+	         if cost_before > cost_after then flag = flag + 1 end
+	         --sleep(2)
+	     end
+	     --print("eigenvalue")
+	     --print(eigenVal)
+	     --print("eigenvalue")
+	     --print(eigenVec)
+	     --torch.save("eigenVec_10-8.bin",eigenVec)
+	     ----os.exit()
+	 end
+	    powercallRecord[#powercallRecord+1] = flag
          end
          
 
