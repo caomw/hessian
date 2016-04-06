@@ -61,8 +61,9 @@ dofile(dataset_filepath)
 
 local iterationMethods_filepath = opt.currentDir .. '/iterationMethods.lua'
 dofile(iterationMethods_filepath)
---local hessian_filepath = opt.currentDir .. '/helperFunctions.lua'
---dofile(hessian_filepath)
+
+local update_filepath = opt.currentDir .. '/update.lua'
+dofile(update_filepath)
 
 -- fix seed
 torch.manualSeed(1)
@@ -235,82 +236,68 @@ function train(dataset)
                local t0 = clock()
                while clock() - t0 <= n do end
          end
-
+	 local doGradStep = 1
+   	 local v = -1
+	 local stepSize = -1
          if opt.hessian then
-             local flag = 0
-	 if torch.norm(gradParameters) < opt.gradNormThresh then
-	     flag = flag + 1
-	 -- First iteration method
-	 if opt.iterationMethod =="power" then
-	     maxEigValH, v, converged = hessianPowermethod(inputs,targets,parameters:clone(),gradParameters:clone(),opt.iterMethodDelta,opt.currentDir,opt.modelpath)
-	 end
-	 if opt.iterationMethod =="lanczos" then
-	     maxEigValH, v, converged1 = lanczos(inputs,targets,parameters:clone(),gradParameters:clone(),opt.iterMethodDelta,opt.currentDir,opt.modelpath)
-	 end
-	 convergeTable1[#convergeTable1+1] = converged1
-	 eigenTable[#eigenTable+1] = maxEigValH
-	 -- Second iteration method
-	 if opt.iterationMethod =="power" then  
-	     minEigValH, v, converged = negativePowermethod(inputs,targets,parameters:clone(),gradParameters:clone(),opt.iterMethodDelta,opt.currentDir,maxEigValH,opt.modelpath)
-	 end
-	 if opt.iterationMethod =="lanczos"  then 
-	     minEigValH, v, converged2 = negativeLanczos(inputs,targets,parameters:clone(),gradParameters:clone(),opt.iterMethodDelta,opt.currentDir,maxEigValH,opt.modelpath)
-	 end
-	 convergeTable2[#convergeTable2+1] = converged2
-	 eigenTableNeg[#eigenTable+1] = minEigValH
-	     if minEigValH < 0 and converged1 and converged2 then --the Hessian has a reliable negative eigenvalue so we should proceed to this direction
-	         flag = flag + 1
-	         cost_before = computeCurrentLoss(inputs,targets,parameters:clone(),opt.currentDir,opt.modelpath) 
-	         --outputs_before = model:forward(inputs)
-	         --cost_before = criterion:forward(outputs, targets)
-	         --parameters:copy(parameters + eigenVec2 * stepSize)
-	         stepSize = opt.learningRate * opt.hessianMultiplier 
-	         if opt.newton then
-	             --limit the stepSize 
-	             stepSize = 1/torch.abs(minEigValH)
-	         end
-	         if opt.lineSearch then
-	             local searchTable = {2^-3, 2^-2, 2^-1, 2^0, 2^1, 2^2,
-	                                  -2^-3, -2^-2, -2^-1, -2^0, -2^1, -2^2}
-	             local temp_loss = 10e8
-	             for i=1,#searchTable do
-	                --local loss_before = computeCurrentLoss(inputs,targets,parameters:clone(),opt.currentDir,opt.modelpath)
-	                local linesearch_stepSize = opt.learningRate * searchTable[i]
-	                local loss_after = computeLineSearchLoss(inputs,targets,parameters:clone(),opt.currentDir,opt.modelpath,v,linesearch_stepSize)
-	                if (loss_after - cost_before) < temp_loss then
-	                    id_record = i
-	                    temp_loss = loss_after - cost_before
-	                end
-	            end
-	            stepSize = opt.learningRate * searchTable[id_record]  
-	            lineSearchDescisionTable[#lineSearchDescisionTable+1] = stepSize
-	         end
-	         parameters:add(v * stepSize)
-	         --outputs_after = model:forward(inputs)
-	         --cost_after = criterion:forward(outputs, targets)
-	         cost_after = computeCurrentLoss(inputs,targets,parameters:clone(),opt.currentDir,opt.modelpath) 
-	         --print("cost_before")
-	         --print(cost_before)
-	         cost_before_acc[#cost_before_acc+1] = cost_before
-	         --print("cost_after")
-	         --print(cost_after)
-	         cost_after_acc[#cost_after_acc+1] = cost_after
-	         if cost_before > cost_after then flag = flag + 1 end
-	         --sleep(2)
-	     end
-	     --print("eigenvalue")
-	     --print(eigenVal)
-	     --print("eigenvalue")
-	     --print(eigenVec)
-	     --torch.save("eigenVec_10-8.bin",eigenVec)
-	     ----os.exit()
-	 end
-	    powercallRecord[#powercallRecord+1] = flag
+                local flag = 0
+	 	if torch.norm(gradParameters) < opt.gradNormThresh then
+		     flag = flag + 1
+		     -- First iteration method
+		     if opt.iterationMethod =="power" then
+			 maxEigValH, v, converged1 = hessianPowermethod(inputs,targets,parameters:clone(),gradParameters:clone(),opt.iterMethodDelta,opt.currentDir,opt.modelpath)
+		     end
+		     if opt.iterationMethod =="lanczos" then
+			 maxEigValH, v, converged1 = lanczos(inputs,targets,parameters:clone(),gradParameters:clone(),opt.iterMethodDelta,opt.currentDir,opt.modelpath)
+		     end
+		     convergeTable1[#convergeTable1+1] = converged1
+		     eigenTable[#eigenTable+1] = maxEigValH
+		     -- Second iteration method
+		     if opt.iterationMethod =="power" then  
+			 minEigValH, v, converged2 = negativePowermethod(inputs,targets,parameters:clone(),gradParameters:clone(),opt.iterMethodDelta,opt.currentDir,maxEigValH,opt.modelpath)
+		     end
+		     if opt.iterationMethod =="lanczos"  then 
+			 minEigValH, v, converged2 = negativeLanczos(inputs,targets,parameters:clone(),gradParameters:clone(),opt.iterMethodDelta,opt.currentDir,maxEigValH,opt.modelpath)
+		     end
+		     convergeTable2[#convergeTable2+1] = converged2
+		     eigenTableNeg[#eigenTable+1] = minEigValH
+		     if minEigValH < 0 and converged1 and converged2 then --the Hessian has a reliable negative eigenvalue so we should proceed to this direction
+			 doGradStep = 0;
+			 flag = flag + 1
+			 cost_before = computeCurrentLoss(inputs,targets,parameters:clone(),opt.currentDir,opt.modelpath) 
+			 stepSize = opt.learningRate * opt.hessianMultiplier 
+			 if opt.newton then
+			     stepSize = 1/torch.abs(minEigValH)
+			 end
+			 if opt.lineSearch then
+			     local searchTable = {2^-3, 2^-2, 2^-1, 2^0, 2^1, 2^2,
+			                          -2^-3, -2^-2, -2^-1, -2^0, -2^1, -2^2}
+			     local temp_loss = 10e8
+			     for i=1,#searchTable do
+			        local linesearch_stepSize = opt.learningRate * searchTable[i]
+			        local loss_after = computeLineSearchLoss(inputs,targets,parameters:clone(),opt.currentDir,opt.modelpath,v,linesearch_stepSize)
+			        if (loss_after - cost_before) < temp_loss then
+			            id_record = i
+			            temp_loss = loss_after - cost_before
+			        end
+			    end
+			    stepSize = opt.learningRate * searchTable[id_record]  
+			    lineSearchDescisionTable[#lineSearchDescisionTable+1] = stepSize
+			 end
+			 --parameters:add(v * stepSize)
+			 --cost_after = computeCurrentLoss(inputs,targets,parameters:clone(),opt.currentDir,opt.modelpath) 
+			 --cost_before_acc[#cost_before_acc+1] = cost_before
+			 --cost_after_acc[#cost_after_acc+1] = cost_after
+			 --if cost_before > cost_after then flag = flag + 1 end
+			 --sleep(2)
+		     end
+		 end
+	         powercallRecord[#powercallRecord+1] = flag
          end
          
 
          -- return f and df/dX
-         return f,gradParameters
+         return f,gradParameters, doGradStep, stepSize, v
       end
 
       -- optimize on current mini-batch
@@ -329,16 +316,16 @@ function train(dataset)
          print(' - nb of iterations: ' .. lbfgsState.nIter)
          print(' - nb of function evalutions: ' .. lbfgsState.funcEval)
 
-      elseif opt.optimization == 'SGD' then
+      elseif opt.optimization == 'SGD'  then
+	 -- Perform SGD step:
+	 sgdState = sgdState or {
+	    learningRate = opt.learningRate,
+	    momentum = opt.momentum,
+	    learningRateDecay = 5e-7
+	 }
+	 --optim.sgd(feval, parameters, sgdState)
+     update(feval,parameters,sgdState)
 
-         -- Perform SGD step:
-         sgdState = sgdState or {
-            learningRate = opt.learningRate,
-            momentum = opt.momentum,
-            learningRateDecay = 5e-7
-         }
-         optim.sgd(feval, parameters, sgdState)
-      
          -- disp progress
          xlua.progress(t, dataset:size())
 
