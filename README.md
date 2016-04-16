@@ -116,3 +116,7 @@ To do: change f(thing) - f(ff) -> f(theta+eps) - f(theta-eps) / 2eps
 2016/04/04
 
 02:00 Fixed bug. Incorporate Uri's code. Ran a bunch of test experiments.
+
+2016/04/05
+
+00:30 Fixed bug. Incoporate Uri's update.lua.
