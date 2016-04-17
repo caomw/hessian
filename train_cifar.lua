@@ -46,16 +46,23 @@ cmd:option('-maxEpoch', 5, 'maximum number of epochs to run')
 cmd:option('-currentDir', 'foo', 'current directory where this script is executed')
 cmd:option('-gradnormThresh', 0.5, 'threshold of grad norm to switch from gradient descent to hessian')
 cmd:option('-hessianMultiplier', 5, 'will determine stepsize used for hessian mode. Stepsize = opt.learningRate * opt.hessianMultiplier')
-cmd:option('-powermethodDelta', 10e-6, 'threshold to stop powermethod; will keep running until difference between norm_Hd and norm_Hd_old < powermethodDelta')
+cmd:option('-iterMethodDelta', 10e-10, 'threshold to stop iteration method; will keep running until norm(Av - lambda v)<delta or until max number of iterations is exceeded')
 cmd:option('-preprocess', false, 'preprocess training and test data; necessary if you need more than 60/70% test accuracy.')
 cmd:option('-hessian', false, 'turn on hessian mode')
 cmd:option('-modelpath', '/models/train-cifar-model.lua', 'path to the model used in hessian mode; must be the same as the model used in normal training')
 cmd:option('-plot', false, 'turn on plotting while training')
 cmd:option('-newton',false, 'turn on newton-like stepsize')
+cmd:option('-lineSearch',false, 'turn on lineSearch')
 cmd:text()
 opt = cmd:parse(arg)
 
 torch.save("parameter_info.bin", opt)
+
+local iterationMethods_filepath = opt.currentDir .. '/iterationMethods.lua'
+dofile(iterationMethods_filepath)
+
+local update_filepath = opt.currentDir .. '/update.lua'
+dofile(update_filepath)
 
 -- fix seed
 torch.manualSeed(opt.seed)
@@ -239,13 +246,16 @@ end
 norm_gradParam = {}
 minibatch_norm_gradParam = 0
 cost_before_acc = {}
-cost_after_acc = {}
+cost_after_accH = {}
+cost_after_accG = {}
 eigenTable = {}
 eigenTableNeg = {}
 powercallRecord = {}
---Need to code up opt.lineSearch
-eigenVal_vectorTable = {}
-eigenVal_vectorTable2 = {}
+if opt.lineSearch then
+    lineSearchDecisionTable = {}
+end
+convergeTable1 = {} 
+convergeTable2 = {} 
 
 -- training function
 function train(dataset)
@@ -322,72 +332,98 @@ function train(dataset)
          end
 
          -- hessian mode?
+         local doGradStep = 1
+         local v = -1
+         local stepSize = -1
          if opt.hessian then
             local flag = 0
             if torch.norm(gradParameters) < opt.gradnormThresh then
              flag = flag + 1
-             eigenVec, eigenVal_vector = hessianPowermethod(inputs,targets,parameters:clone(),gradParameters:clone(),opt.powermethodDelta,opt.currentDir,opt.modelpath)
-             if torch.sum(eigenVal_vector)/eigenVal_vector:size(1)  - eigenVal_vector[1] > 10e-4 then eigenVal_vectorTable[#eigenVal_vectorTable+1] = eigenVal_vector end
-             eigenVal = eigenVal_vector[1]
-             eigenTable[#eigenTable+1] = eigenVal 
-             eigenVec2, eigenVal2 = negativePowermethod(inputs,targets,parameters:clone(),gradParameters:clone(),opt.powermethodDelta,opt.currentDir,eigenVal,opt.modelpath)
-             if torch.sum(eigenVal_vector2)/eigenVal_vector2:size(1)  - eigenVal_vector2[1] > 10e-4 then eigenVal_vectorTable2[#eigenVal_vectorTable2+1] = eigenVal_vector2 end
-             eigenVal2 = eigenVal_vector2[1] 
-             if eigenVal2 > eigenVal then --the Hessian has a negative eigenvalue so we should proceed to this direction
-                 flag = flag + 1
-                 eigenTableNeg[#eigenTableNeg+1] = eigenVal - eigenVal2
-
-                 cost_before = computeCurrentLoss(inputs,targets,parameters:clone(),opt.currentDir,opt.modelpath)
-                 stepSize = opt.learningRate * opt.hessianMultiplier
-                 if opt.newton then
-                     stepSize = 1/torch.abs(eigenVal-eigenVal2)
-                 end
-                 parameters:add(eigenVec2 * stepSize)
-                 cost_after = computeCurrentLoss(inputs,targets,parameters:clone(),opt.currentDir,opt.modelpath)
-                 cost_before_acc[#cost_before_acc+1] = cost_before
-                 cost_after_acc[#cost_after_acc+1] = cost_after
-                 if cost_before > cost_after then flag = flag + 1 end 
-                 --sleep(2)
+             -- First iteration method
+             if opt.iterationMethod =="power" then
+                 maxEigValH, v, converged1 = hessianPowermethod(inputs,targets,parameters:clone(),gradParameters:clone(),opt.iterMethodDelta,opt.currentDir,opt.modelpath)
              end
-            end
+             if opt.iterationMethod =="lanczos" then
+                 maxEigValH, v, converged1 = lanczos(inputs,targets,parameters:clone(),gradParameters:clone(),opt.iterMethodDelta,opt.currentDir,opt.modelpath)
+             end
+             convergeTable1[#convergeTable1+1] = converged1
+             eigenTable[#eigenTable+1] = maxEigValH
+             -- Second iteration method
+             if opt.iterationMethod =="power" then
+                 minEigValH, v, converged2 = negativePowermethod(inputs,targets,parameters:clone(),gradParameters:clone(),opt.iterMethodDelta,opt.currentDir,maxEigValH,opt.modelpath)
+             end
+             if opt.iterationMethod =="lanczos"  then
+                 minEigValH, v, converged2 = negativeLanczos(inputs,targets,parameters:clone(),gradParameters:clone(),opt.iterMethodDelta,opt.currentDir,maxEigValH,opt.modelpath)
+             end
+             convergeTable2[#convergeTable2+1] = converged2
+             eigenTableNeg[#eigenTableNeg+1] = minEigValH
+             if minEigValH < 0 and converged1 and converged2 then --the Hessian has a reliable negative eigenvalue so we should proceed to this direction
+                doGradStep = 0;
+                flag = flag + 1
+                cost_before = computeCurrentLoss(inputs,targets,parameters:clone(),opt.currentDir,opt.modelpath)
+                stepSize = opt.learningRate * opt.hessianMultiplier
+                if opt.newton then
+                    stepSize = 1/torch.abs(minEigValH)
+                end     
+                if opt.lineSearch then
+                    local searchTable = {2^0, 2^1, 2^2, 2^3, 2^4, 2^5
+                                      -2^0, -2^1, -2^2, -2^3, -2^4, -2^5}
+                    local temp_loss = 10e8   
+                    for i=1,#searchTable do
+                        local linesearch_stepSize = opt.learningRate * searchTable[i]
+                        local loss_after = computeLineSearchLoss(inputs,targets,parameters:clone(),opt.currentDir,opt.modelpath,v,linesearch_stepSize)
+                        if (loss_after - cost_before) < temp_loss then
+                            id_record = i
+                            temp_loss = loss_after - cost_before
+                        end     
+                    end     
+                    stepSize = opt.learningRate * searchTable[id_record]
+                    lineSearchDecisionTable[#lineSearchDecisionTable+1] = stepSize
+                end    
+                parametersH = parameters:clone():add(v * stepSize) -- Hessian update
+                parametersG = parameters:clone():add(gradParameters * (-opt.learningRate)) -- gradient update
+                cost_afterH = computeCurrentLoss(inputs,targets,parametersH,opt.currentDir,opt.modelpath) 
+                cost_afterG = computeCurrentLoss(inputs,targets,parametersG,opt.currentDir,opt.modelpath) 
+                cost_before_acc[#cost_before_acc+1] = cost_before
+                cost_after_accH[#cost_after_accH+1] = cost_afterH
+                cost_after_accG[#cost_after_accG+1] = cost_afterG
+             end -- of "if minEigValH < 0 and converged1 and converged2 then"
+            end -- of "if torch.norm(gradParameters) < opt.gradnormThresh then"
             powercallRecord[#powercallRecord+1] = flag
-         end 
-
-
+         end --of "if opt.hessian then"
+          
          -- return f and df/dX
-         return f,gradParameters
-      end
+         return f,gradParameters, doGradStep, stepSize, v
+    end
+ 
 
-      -- optimize on current mini-batch
-      if opt.optimization == 'CG' then
-         config = config or {maxIter = opt.maxIter}
-         optim.cg(feval, parameters, config)
+    -- optimize on current mini-batch
+    if opt.optimization == 'CG' then
+       config = config or {maxIter = opt.maxIter}
+       optim.cg(feval, parameters, config)
+    elseif opt.optimization == 'LBFGS' then
+       config = config or {learningRate = opt.learningRate,
+                           maxIter = opt.maxIter,
+                           nCorrection = 10}
+       optim.lbfgs(feval, parameters, config)
+    elseif opt.optimization == 'SGD' then
+       config = config or {learningRate = opt.learningRate,                         
+                           weightDecay = opt.weightDecay,
+                           momentum = opt.momentum,
+                           learningRateDecay = 5e-7}
+       --optim.sgd(feval, parameters, config)
+       update(feval, parameters, config)
+    elseif opt.optimization == 'ASGD' then
+       config = config or {eta0 = opt.learningRate,
+                           t0 = nbTrainingPatches * opt.t0}
+       _,_,average = optim.asgd(feval, parameters, config)
+    else
+       error('unknown optimization method')
+    end
 
-      elseif opt.optimization == 'LBFGS' then
-         config = config or {learningRate = opt.learningRate,
-                             maxIter = opt.maxIter,
-                             nCorrection = 10}
-         optim.lbfgs(feval, parameters, config)
-
-      elseif opt.optimization == 'SGD' then
-         config = config or {learningRate = opt.learningRate,
-                             weightDecay = opt.weightDecay,
-                             momentum = opt.momentum,
-                             learningRateDecay = 5e-7}
-         optim.sgd(feval, parameters, config)
-
-      elseif opt.optimization == 'ASGD' then
-         config = config or {eta0 = opt.learningRate,
-                             t0 = nbTrainingPatches * opt.t0}
-         _,_,average = optim.asgd(feval, parameters, config)
-
-      else
-         error('unknown optimization method')
-      end
-
-      norm_gradParam[#norm_gradParam + 1] = minibatch_norm_gradParam
-      minibatch_norm_gradParam = 0
-   end
+    norm_gradParam[#norm_gradParam + 1] = minibatch_norm_gradParam  --accumulated every minibatch
+    minibatch_norm_gradParam = 0
+ end
 
    -- train error
    trainError = trainError / math.floor(dataset:size()/opt.batchSize)
@@ -483,14 +519,18 @@ while true do
    trainAcc, trainErr = train(trainData)
    testAcc,  testErr  = test (testData)
 
-   torch.save("cost_before_acc.bin" , cost_before_acc);torch.save("cost_after_acc.bin",cost_after_acc)
+   torch.save("cost_before_acc.bin" , cost_before_acc)
+   torch.save("cost_after_accH.bin",cost_after_accH)
+   torch.save("cost_after_accG.bin",cost_after_accG)
    torch.save("norm_gradParam.bin", norm_gradParam)
    torch.save("eigenTable.bin",eigenTable)
    torch.save("eigenTableNeg.bin",eigenTableNeg)
    torch.save("powercallRecord.bin",powercallRecord)
-   torch.save("eigenVal_vectorTable.bin",eigenVal_vectorTable) 
-   torch.save("eigenVal_vectorTable2.bin",eigenVal_vectorTable2)
-
+   torch.save("convergeTable1.bin",convergeTable1)
+   torch.save("convergeTable2.bin",convergeTable2)
+   if opt.lineSearch  then
+     torch.save("lineSearchDecision.bin",lineSearchDecisionTable)
+   end 
    -- update logger
    accLogger:add{['% train accuracy'] = trainAcc, ['% test accuracy'] = testAcc}
    errLogger:add{['% train error']    = trainErr, ['% test error']    = testErr}

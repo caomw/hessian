@@ -582,3 +582,12 @@ Also
 - To do : I should code up for CUDA mode in train_mnist.lua and cifar.lua
 
 - To do: incorporate the saving function (stepsize) Done. When I restart the experiment, I should first git pull in the Raphy repo. And then delete the hessian*constant part. 
+
+
+
+
+#2016/04/16
+
+- Reduced the image size of MNIST to 10 x 10. The script is resize10x10test.lua and resize10x10.lua located in data/mnist.t7
+
+    - I used require 'graphicsmagick' to do image reducing.

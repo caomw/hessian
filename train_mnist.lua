@@ -52,7 +52,7 @@ local opt = lapp[[
    --newton                                 turn on Newton-like stepsize
    --lineSearch                             turn on lineSearch 
 ]]
-
+opt.learningRate = 0.2
 torch.save("parameter_info.bin",opt)
 
 local dataset_filepath =  opt.currentDir .. '/dataset-mnist.lua' 
@@ -90,7 +90,8 @@ end
 classes = {'1','2','3','4','5','6','7','8','9','10'}
 
 -- geometry: width and height of input images
-geometry = {32,32}
+--geometry = {32,32}
+geometry = {10,10}
 
 if opt.network == '' then
    -- define model to train
@@ -149,12 +150,13 @@ trainLogger = optim.Logger(paths.concat(opt.save, 'train.log'))
 testLogger = optim.Logger(paths.concat(opt.save, 'test.log'))
 
 cost_before_acc = {}
-cost_after_acc = {}
+cost_after_accH = {}
+cost_after_accG = {}
 eigenTable = {}
 eigenTableNeg = {}
 powercallRecord = {}
 if opt.lineSearch  then
-    lineSearchDescisionTable = {}
+    lineSearchDecisionTable = {}
 end
 convergeTable1 = {}
 convergeTable2 = {}
@@ -228,7 +230,6 @@ function train(dataset)
             confusion:add(outputs[i], targets[i])
          end
 
-         --minibatch_norm_gradParam = minibatch_norm_gradParam + torch.norm(gradParameters)
          minibatch_norm_gradParam = torch.norm(gradParameters) 
 
          local clock = os.clock
@@ -260,7 +261,7 @@ function train(dataset)
 			 minEigValH, v, converged2 = negativeLanczos(inputs,targets,parameters:clone(),gradParameters:clone(),opt.iterMethodDelta,opt.currentDir,maxEigValH,opt.modelpath)
 		     end
 		     convergeTable2[#convergeTable2+1] = converged2
-		     eigenTableNeg[#eigenTable+1] = minEigValH
+		     eigenTableNeg[#eigenTableNeg+1] = minEigValH
 		     if minEigValH < 0 and converged1 and converged2 then --the Hessian has a reliable negative eigenvalue so we should proceed to this direction
 			 doGradStep = 0;
 			 flag = flag + 1
@@ -270,8 +271,8 @@ function train(dataset)
 			     stepSize = 1/torch.abs(minEigValH)
 			 end
 			 if opt.lineSearch then
-			     local searchTable = {2^-3, 2^-2, 2^-1, 2^0, 2^1, 2^2,
-			                          -2^-3, -2^-2, -2^-1, -2^0, -2^1, -2^2}
+			     local searchTable = {2^0, 2^1, 2^2, 2^3, 2^4, 2^5
+			                          -2^0, -2^1, -2^2, -2^3, -2^4, -2^5}
 			     local temp_loss = 10e8
 			     for i=1,#searchTable do
 			        local linesearch_stepSize = opt.learningRate * searchTable[i]
@@ -282,12 +283,15 @@ function train(dataset)
 			        end
 			    end
 			    stepSize = opt.learningRate * searchTable[id_record]  
-			    lineSearchDescisionTable[#lineSearchDescisionTable+1] = stepSize
+			    lineSearchDecisionTable[#lineSearchDecisionTable+1] = stepSize
 			 end
-			 --parameters:add(v * stepSize)
-			 --cost_after = computeCurrentLoss(inputs,targets,parameters:clone(),opt.currentDir,opt.modelpath) 
-			 --cost_before_acc[#cost_before_acc+1] = cost_before
-			 --cost_after_acc[#cost_after_acc+1] = cost_after
+			 parametersH = parameters:clone():add(v * stepSize) -- Hessian update
+			 parametersG = parameters:clone():add(gradParameters * (-opt.learningRate)) -- gradient update
+			 cost_afterH = computeCurrentLoss(inputs,targets,parametersH,opt.currentDir,opt.modelpath) 
+			 cost_afterG = computeCurrentLoss(inputs,targets,parametersG,opt.currentDir,opt.modelpath) 
+			 cost_before_acc[#cost_before_acc+1] = cost_before
+			 cost_after_accH[#cost_after_accH+1] = cost_afterH
+			 cost_after_accG[#cost_after_accG+1] = cost_afterG
 			 --if cost_before > cost_after then flag = flag + 1 end
 			 --sleep(2)
 		     end
@@ -323,8 +327,7 @@ function train(dataset)
 	    momentum = opt.momentum,
 	    learningRateDecay = 5e-7
 	 }
-	 --optim.sgd(feval, parameters, sgdState)
-     update(feval,parameters,sgdState)
+	 update(feval, parameters, sgdState)
 
          -- disp progress
          xlua.progress(t, dataset:size())
@@ -367,7 +370,8 @@ function test(dataset)
 
    -- test over given dataset
    print('<trainer> on testing Set:')
-   for t = 1,dataset:size(),opt.batchSize do
+   bs = math.min(dataset:size(), opt.batchSize)
+   for t = 1,dataset:size(),bs do
       -- disp progress
       xlua.progress(t, dataset:size())
 
@@ -390,7 +394,7 @@ function test(dataset)
       local preds = model:forward(inputs)
 
       -- confusion:
-      for i = 1,opt.batchSize do
+      for i = 1,bs do
          confusion:add(preds[i], targets[i])
       end
    end
@@ -417,8 +421,9 @@ while true do
    train(trainData)
    test(testData)
 
-   torch.save("cost_before_acc.bin" , cost_before_acc);torch.save("cost_after_acc.bin",cost_after_acc)
-   -- norm_gradParam's x-axis is the number of minibatches so far
+   torch.save("cost_before_acc.bin" , cost_before_acc);
+   torch.save("cost_after_accH.bin",cost_after_accH)
+   torch.save("cost_after_accG.bin",cost_after_accG) 
    torch.save("norm_gradParam.bin", norm_gradParam)
    torch.save("eigenTable.bin",eigenTable)
    torch.save("eigenTableNeg.bin",eigenTableNeg)
@@ -426,7 +431,7 @@ while true do
    torch.save("convergeTable1.bin",convergeTable1)
    torch.save("convergeTable2.bin",convergeTable2)
    if opt.lineSearch  then
-     torch.save("lineSearchDescision.bin",lineSearchDescisionTable)
+     torch.save("lineSearchDecision.bin",lineSearchDecisionTable)
    end
    -- plot errors
    if opt.plot then

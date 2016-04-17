@@ -120,3 +120,8 @@ To do: change f(thing) - f(ff) -> f(theta+eps) - f(theta-eps) / 2eps
 2016/04/05
 
 00:30 Fixed bug. Incoporate Uri's update.lua.
+
+2016/04/16
+
+01:45 Reduced image size 10x10. Ran a new experiment.
+

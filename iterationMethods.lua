@@ -1,6 +1,7 @@
 require 'nn'
 function hessianPowermethod(inputs,targets,param,gradParam, delta, filepath, modelpath) 
     local maxIter = 50
+    local acc_threshold = .02
     local criterion = nn.ClassNLLCriterion()
     local model_a = nn.Sequential()                                                                                                                                     
     model_a:add(dofile(filepath .. modelpath))
@@ -57,7 +58,7 @@ function hessianPowermethod(inputs,targets,param,gradParam, delta, filepath, mod
         d = Hd / norm_Hd
     end
     converged = false
-    if torch.abs(lambda) > diff
+    if torch.abs(lambda) > diff and diff_H < acc_threshold
         then converged = true
     end
     return lambda, d, converged
@@ -69,6 +70,7 @@ end
 
 function negativePowermethod(inputs,targets,param,gradParam, delta, filepath, maxEigValH, modelpath)
     local maxIter = 50
+    local acc_threshold = .02
     local criterion = nn.ClassNLLCriterion()
     local model_a  = nn.Sequential ()                                                                                                                                            
     model_a:add(dofile(filepath .. modelpath))
@@ -130,7 +132,7 @@ function negativePowermethod(inputs,targets,param,gradParam, delta, filepath, ma
         
     end
     converged = false
-    if torch.abs(lambda) > diff_M and minEigValH > diff_H*1e-2
+    if torch.abs(lambda) > diff_M and torch.abs(minEigValH) > diff_H and diff_H < acc_threshold
         then converged = true
     end   
     return minEigValH, d, converged
@@ -143,6 +145,7 @@ end
 
 function lanczos(inputs,targets,param,gradParam, delta, filepath, modelpath) 
     local maxIter = 50
+    local acc_threshold = .02
     local criterion = nn.ClassNLLCriterion()
     local model_a  = nn.Sequential ()                                                                                                                                            
     model_a:add(dofile(filepath .. modelpath))
@@ -269,7 +272,7 @@ function lanczos(inputs,targets,param,gradParam, delta, filepath, modelpath)
     Hv = (gradParam_eps_a - gradParam_eps_b) / (2*epsilon)
     diff = torch.norm(Hv - v*lambda)
     --print(diff) -- TODO: comment this out
-    converged = torch.abs(lambda) > diff
+    converged = torch.abs(lambda) > diff and diff<acc_threshold
     return lambda, v, converged
 end
 
@@ -281,6 +284,7 @@ end
 
 function negativeLanczos(inputs,targets,param,gradParam, delta, filepath, maxEigValH, modelpath)
     local maxIter = 50
+    local acc_threshold = .02
     local criterion = nn.ClassNLLCriterion()
     local model_a  = nn.Sequential ()                                                                                                                                            
     model_a:add(dofile(filepath .. modelpath))
@@ -418,9 +422,12 @@ function negativeLanczos(inputs,targets,param,gradParam, delta, filepath, maxEig
     
     --print(diff_M) -- TODO: comment this out
     --print(diff_H) -- TODO: comment this out
-    converged = torch.abs(minEigValH) > diff_H and torch.abs(lambda) > diff_M
+    converged = torch.abs(minEigValH) > diff_H and torch.abs(lambda) > diff_M and diff_H < acc_threshold
     return minEigValH, v, converged
 end
+
+---------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------
 
 
 function computeLineSearchLoss(inputs,targets,parameters,filepath,modelpath,eigenVector,stepSize)
@@ -435,11 +442,12 @@ function computeLineSearchLoss(inputs,targets,parameters,filepath,modelpath,eige
 
     outputs = model:forward(inputs)
     loss = criterion:forward(outputs, targets)
-    --df_do = criterion:backward(outputs, targets)
-    --model:backward(inputs, df_do) --gradParams_eps should be updated here 
-
     return loss
 end
+
+---------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------
+
 
 function computeCurrentLoss(inputs,targets,parameters,filepath,modelpath)
     local model = nn.Sequential()
@@ -452,8 +460,6 @@ function computeCurrentLoss(inputs,targets,parameters,filepath,modelpath)
 
     outputs = model:forward(inputs)
     loss = criterion:forward(outputs, targets)
-    --df_do = criterion:backward(outputs, targets)
-    --model:backward(inputs, df_do) --gradParams_eps should be updated here 
 
     return loss
 end
