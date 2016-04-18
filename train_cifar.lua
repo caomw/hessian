@@ -44,7 +44,8 @@ cmd:option('-maxIter', 5, 'maximum nb of iterations for CG and LBFGS')
 cmd:option('-threads', 2, 'nb of threads to use')
 cmd:option('-maxEpoch', 5, 'maximum number of epochs to run')
 cmd:option('-currentDir', 'foo', 'current directory where this script is executed')
-cmd:option('-gradnormThresh', 0.5, 'threshold of grad norm to switch from gradient descent to hessian')
+cmd:option('-iterationMethod', 'power', 'eigenvalue iteration method (Power or Lanczos)')
+cmd:option('-gradNormThresh', 0.5, 'threshold of grad norm to switch from gradient descent to hessian')
 cmd:option('-hessianMultiplier', 5, 'will determine stepsize used for hessian mode. Stepsize = opt.learningRate * opt.hessianMultiplier')
 cmd:option('-iterMethodDelta', 10e-10, 'threshold to stop iteration method; will keep running until norm(Av - lambda v)<delta or until max number of iterations is exceeded')
 cmd:option('-preprocess', false, 'preprocess training and test data; necessary if you need more than 60/70% test accuracy.')
@@ -53,6 +54,7 @@ cmd:option('-modelpath', '/models/train-cifar-model.lua', 'path to the model use
 cmd:option('-plot', false, 'turn on plotting while training')
 cmd:option('-newton',false, 'turn on newton-like stepsize')
 cmd:option('-lineSearch',false, 'turn on lineSearch')
+cmd:option('-shrink',false, 'use 10x10 size for image data')
 cmd:text()
 opt = cmd:parse(arg)
 
@@ -120,12 +122,26 @@ end
 --end
 
 -- load dataset
-trainData = {
-   data = torch.Tensor(50000, 3072),
-   labels = torch.Tensor(50000),
-   size = function() return trsize end
-}
-local dataset_filepath = opt.currentDir .. '/../data/cifar-10-batches-t7'
+if opt.shrink then
+    trainData = {
+    data = torch.Tensor(50000, 300),
+    labels = torch.Tensor(50000),
+    size = function() return trsize end
+    }
+else
+    trainData = {
+    data = torch.Tensor(50000, 3072),
+    labels = torch.Tensor(50000),
+    size = function() return trsize end
+    }
+end
+
+if opt.shrink then
+    dataset_filepath = opt.currentDir .. '/../data/cifar-10-batches-10x10-t7'
+else
+    dataset_filepath = opt.currentDir .. '/../data/cifar-10-batches-t7'
+end
+
 for i = 0,4 do
    subset = torch.load(dataset_filepath .. '/data_batch_' .. (i+1) .. '.t7', 'ascii')
    trainData.data[{ {i*10000+1, (i+1)*10000} }] = subset.data:t()
@@ -149,8 +165,13 @@ testData.data = testData.data[{ {1,tesize} }]
 testData.labels = testData.labels[{ {1,tesize} }]
 
 -- reshape data
-trainData.data = trainData.data:reshape(trsize,3,32,32)
-testData.data = testData.data:reshape(tesize,3,32,32)
+if opt.shrink then
+    trainData.data = trainData.data:reshape(trsize,3,10,10)
+    testData.data = testData.data:reshape(tesize,3,10,10)
+else
+    trainData.data = trainData.data:reshape(trsize,3,32,32)
+    testData.data = testData.data:reshape(tesize,3,32,32)
+end
 
 if opt.preprocess then
   ----------------------------------------------------------------------
@@ -337,7 +358,7 @@ function train(dataset)
          local stepSize = -1
          if opt.hessian then
             local flag = 0
-            if torch.norm(gradParameters) < opt.gradnormThresh then
+            if torch.norm(gradParameters) < opt.gradNormThresh then
              flag = flag + 1
              -- First iteration method
              if opt.iterationMethod =="power" then
@@ -388,7 +409,7 @@ function train(dataset)
                 cost_after_accH[#cost_after_accH+1] = cost_afterH
                 cost_after_accG[#cost_after_accG+1] = cost_afterG
              end -- of "if minEigValH < 0 and converged1 and converged2 then"
-            end -- of "if torch.norm(gradParameters) < opt.gradnormThresh then"
+            end -- of "if torch.norm(gradParameters) < opt.gradNormThresh then"
             powercallRecord[#powercallRecord+1] = flag
          end --of "if opt.hessian then"
           
