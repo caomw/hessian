@@ -1,0 +1,25 @@
+convergeTable1 = torch.load("convergeTable1.bin")
+convergeTable2 = torch.load("convergeTable2.bin")
+
+eigenTable = torch.load("eigenTable.bin")
+eigenTableNeg = torch.load("eigenTableNeg.bin")
+
+cost_before_acc = torch.load("cost_before_acc.bin")
+cost_after_accH = torch.load("cost_after_accH.bin")
+cost_after_accG = torch.load("cost_after_accG.bin")
+
+cost_before_acc = torch.Tensor(cost_before_acc)
+cost_after_accH = torch.Tensor(cost_after_accH)
+cost_after_accG = torch.Tensor(cost_after_accG)
+
+costDiff_H = cost_before_acc - cost_after_accH
+costDiff_G = cost_before_acc - cost_after_accG
+
+norm_grad = torch.load("norm_gradParam.bin")
+norm_grad = torch.Tensor(norm_grad)
+
+# torch.mean(costDiff_H.gt(0)) # check this line
+
+# in case we're looking at linesearch
+lineSearchDecision = torch.load("lineSearchDecision.bin")
+
