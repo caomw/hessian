@@ -591,3 +591,30 @@ Also
 - Reduced the image size of MNIST to 10 x 10. The script is resize10x10test.lua and resize10x10.lua located in data/mnist.t7
 
     - I used require 'graphicsmagick' to do image reducing.
+
+#2016/05/14
+
+- update the training files. The emails from Uri:
+
+> Cool.
+> I'll send you some updated files later on today.
+>
+> I ran experiment on
+>
+> mnist big AE (GPU)
+>
+> mnist small AE (CPU)
+>
+> mnist big classifier (GPU)
+>
+> mnist small classifier (CPU)
+>
+> cifar classifier (CPU)
+>
+> RNN (GPU)
+>
+> Basically, I haven't observed saddle point problem in any of the experiments, unlike what Bengio says. The mnist big AE gets into a plateau soon after start, but SGD gets out of there after some time without any help.
+> Another thing, is that my Lanczos implementation only works well on CPU. It goes crazy on GPU because single precision is not good enough for it.
+> 
+> I'll send you my files soon, and you're welcome to design new experiments and check some new directions. 
+
