@@ -618,3 +618,11 @@ Also
 > 
 > I'll send you my files soon, and you're welcome to design new experiments and check some new directions. 
 
+#2016/05/22
+
+- start experiments on autoencoder. The setting is the same as Sutskever's paper. 
+    
+#2016/05/25
+
+- Test rop.lua from https://github.com/cswhjiang/nn/blob/rop/doc/rop.md
+

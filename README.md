@@ -125,3 +125,6 @@ To do: change f(thing) - f(ff) -> f(theta+eps) - f(theta-eps) / 2eps
 
 01:45 Reduced image size 10x10. Ran a new experiment.
 
+2016/05/25
+
+01:00 Prepared R-op module to compute Hv more accurately than the finite difference method.
