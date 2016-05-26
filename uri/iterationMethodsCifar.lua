@@ -1,29 +1,30 @@
 require 'nn'
-require 'cunn'
+function hessianPowermethodClassifier(inputs, targets, param, delta, filepath, modelpath) 
+    local maxIter = 20
+    local acc_threshold = .2
+    local criterion = nn.ClassNLLCriterion()
+    --criterion.sizeAverage = false
+    local model_a  = nn.Sequential ()                                                                                                                                            
+    --model_a:add(dofile(modelFile))
+    model_a:add(dofile(filepath .. modelpath))
+    model_a:add(nn.LogSoftMax())
 
-function hessianPowermethodRNN(inputs,targets,param, delta, model) 
-    local maxIter = 50
-    local acc_threshold = 2
-    local crit = nn.ClassNLLCriterion()
-    local criterion = nn.SequencerCriterion(crit)
-    criterion:cuda()
-    
-    local model_a = model:clone()
-    local model_b = model:clone()
+    local model_b  = nn.Sequential ()                                                                                                                                            
+    --model_b:add(dofile(modelFile))
+    model_b:add(dofile(filepath .. modelpath))
+    model_b:add(nn.LogSoftMax())
 
-    local d = torch.randn(param:size()) --need to check
+    local d = torch.randn(param:size())
     d = d / torch.norm(d)
-    d = d:cuda()
     
-    local d_old = d*10; 
-    diff = 10
+    local diff = 10
     local param_new_a, gradParam_eps_a = model_a:getParameters() 
     local param_new_b, gradParam_eps_b = model_b:getParameters() 
     -- in order to reflect loading a new parameter set
     local numIters = 0
     while diff > delta and numIters < maxIter do
         numIters = numIters+1
-        epsilon = 2*torch.sqrt(10e-8)*(1 + torch.norm(param))/torch.norm(d)
+        epsilon = 2*torch.sqrt(1e-7)*(1 + torch.norm(param))/torch.norm(d)
 
         --print(numIters) --TODO: comment this out
         param_new_a:copy(param + d * epsilon)
@@ -32,31 +33,31 @@ function hessianPowermethodRNN(inputs,targets,param, delta, model)
         --reset gradients
         gradParam_eps_a:zero()
         gradParam_eps_b:zero()
-        
-
 
         --feedforward and backpropagation
         local outputs = model_a:forward(inputs)
-        --local outputs_b = model_b:forward(inputs)
         local f = criterion:forward(outputs, targets)
         local df_do = criterion:backward(outputs, targets)
         model_a:backward(inputs, df_do) --gradParams_eps should be updated here 
-        
+             
+        f = f/inputs:size(1)
+        gradParam_eps_a:div(inputs:size(1))
+
         local outputs = model_b:forward(inputs)
-        --local outputs_b = model_b:forward(inputs)
         local f = criterion:forward(outputs, targets)
         local df_do = criterion:backward(outputs, targets)
         model_b:backward(inputs, df_do) --gradParams_eps should be updated here 
+        
+        f = f/inputs:size(1)
+        gradParam_eps_b:div(inputs:size(1))
+  
 
-        Hd = (gradParam_eps_a - gradParam_eps_b) / (2*epsilon)
-        norm_Hd = torch.norm(Hd)
-        -- normalize the resultant vector to a unit vector
-        -- for the next iteration
+        local Hd = (gradParam_eps_a - gradParam_eps_b) / (2*epsilon)
+        local norm_Hd = torch.norm(Hd)
         lambda = torch.dot(d, Hd)
-        --print(torch.norm(d-d_old)) --TODO: comment this out
-        diff = torch.norm(d*lambda - Hd)
-        --print(diff) --TODO: comment this out
-        d_old = d
+        diff = torch.norm(d*lambda - Hd) --TODO: comment this out
+        --print('|Hv-lambda v|: '..diff) --TODO: comment this out
+        --print('lambda: '..lambda) --TODO: comment this out
         d = Hd / norm_Hd
     end
     converged = false
@@ -66,117 +67,120 @@ function hessianPowermethodRNN(inputs,targets,param, delta, model)
     return lambda, d, converged
 end
 
-
 ---------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------
 
-function negativePowermethodRNN(inputs,targets,param, delta, maxEigValH, model)
-    local maxIter = 50
-    local acc_threshold = 2
-    local crit = nn.ClassNLLCriterion()
-    local criterion = nn.SequencerCriterion(crit)
-    criterion:cuda()
-    
-    local model_a = model:clone()
-    local model_b = model:clone()
+function negativePowermethodClassifier(inputs, targets, param, delta, filepath, modelpath, maxEigValH) 
+    local maxIter = 40
+    local acc_threshold = .2
+    local criterion = nn.ClassNLLCriterion()
+    --criterion.sizeAverage = false
+    local model_a  = nn.Sequential ()                                                                                                                                            
+    --model_a:add(dofile(modelFile))
+    model_a:add(dofile(filepath .. modelpath))
+    model_a:add(nn.LogSoftMax())
 
-    --model_b:add(nn.LogSoftMax())
-    local d = torch.randn(param:size())
+    local model_b  = nn.Sequential ()                                                                                                                                            
+    --model_b:add(dofile(modelFile))
+    model_b:add(dofile(filepath .. modelpath))
+    model_b:add(nn.LogSoftMax())
+
+    local d = torch.randn(param:size()) --need to check
     d = d / torch.norm(d)
-    d = d:cuda()
-    local d_old = d*10; 
-    local param_new_a,gradParam_eps_a = model_a:getParameters() 
-    local param_new_b,gradParam_eps_b = model_b:getParameters()
+    
+    local diff = 10
+    local param_new_a, gradParam_eps_a = model_a:getParameters() 
+    local param_new_b, gradParam_eps_b = model_b:getParameters() 
     -- in order to reflect loading a new parameter set
     local numIters = 0
-    diff_H = 10
-    while diff_H > delta and numIters < maxIter do
-        collectgarbage() 
+    while diff > delta and numIters < maxIter do
         numIters = numIters+1
-        epsilon = 2*torch.sqrt(10e-8)*(1 + torch.norm(param))/torch.norm(d)
-        --print(numIters) -- TODO: comment this out
+        epsilon = 2*torch.sqrt(1e-7)*(1 + torch.norm(param))/torch.norm(d)
+
         param_new_a:copy(param + d * epsilon)
         param_new_b:copy(param - d * epsilon)
 
         --reset gradients
         gradParam_eps_a:zero()
         gradParam_eps_b:zero()
-        
 
         --feedforward and backpropagation
         local outputs = model_a:forward(inputs)
-        --local outputs_b = model_b:forward(inputs)
         local f = criterion:forward(outputs, targets)
         local df_do = criterion:backward(outputs, targets)
         model_a:backward(inputs, df_do) --gradParams_eps should be updated here 
-        
+             
+        f = f/inputs:size(1)
+        gradParam_eps_a:div(inputs:size(1))
+
         local outputs = model_b:forward(inputs)
-        --local outputs_b = model_b:forward(inputs)
         local f = criterion:forward(outputs, targets)
         local df_do = criterion:backward(outputs, targets)
         model_b:backward(inputs, df_do) --gradParams_eps should be updated here 
+        
+        f = f/inputs:size(1)
+        gradParam_eps_b:div(inputs:size(1))
+  
 
-        Hd = (gradParam_eps_a - gradParam_eps_b) / (2*epsilon)
-        norm_Hd = torch.norm(Hd)
-        -- normalize the resultant vector to a unit vector
-        -- for the next iteration
-        d_old = d
-        -- M = mI-H
-        Md = d*maxEigValH - Hd
-        lambda = torch.dot(d, Md)
+        local Hd = (gradParam_eps_a - gradParam_eps_b) / (2*epsilon)
+        local norm_Hd = torch.norm(Hd)
+
+        local Md = d*maxEigValH - Hd
+        local lambda = torch.dot(d, Md)
         minEigValH = maxEigValH - lambda
-        --print(minEigValH)
-        --print(torch.norm(d-d_old)) -- TODO: comment this out
-        diff_M = torch.norm(d*lambda - Md)
+
+        local diff_M = torch.norm(d*lambda - Md)
         diff_H = torch.norm(d*minEigValH - Hd)
-        --print(diff_M) -- TODO: comment this out
-        --print(diff_H) -- TODO: comment this out
-        
+        --print('|Hv-lambda v|: '..diff_H) --TODO: comment this out
+        --print('lambda: '..minEigValH) --TODO: comment this out
         d = Md / torch.norm(Md)
-        
     end
     converged = false
-    if torch.abs(lambda) > diff_M and torch.abs(minEigValH) > diff_H and diff_H < acc_threshold
+    if torch.abs(minEigValH) > diff_H and diff_H < acc_threshold
         then converged = true
-    end   
+    end
     return minEigValH, d, converged
 end
 
+---------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------
 
 ---------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------
 
+function lanczosClassifier(inputs, targets, param, delta, filepath, modelpath) 
+    local maxIter = 20
+    local acc_threshold = 2
+    local criterion = nn.ClassNLLCriterion()
+    --criterion.sizeAverage = false
+    local model_a  = nn.Sequential ()                                                                                                                                            
+    --model_a:add(dofile(modelFile))
+    model_a:add(dofile(filepath .. modelpath))
+    model_a:add(nn.LogSoftMax())
 
-function lanczosRNN(inputs,targets,param, delta, model) 
-    local maxIter = 50
-    local acc_threshold = .2
-    local crit = nn.ClassNLLCriterion()
-    local criterion = nn.SequencerCriterion(crit)
-    criterion:cuda()
-    
-    local model_a = model:clone()
-    local model_b = model:clone()
+    local model_b  = nn.Sequential ()                                                                                                                                            
+    --model_b:add(dofile(modelFile))
+    model_b:add(dofile(filepath .. modelpath))
+    model_b:add(nn.LogSoftMax())
 
-    local param_new_a,gradParam_eps_a = model_a:getParameters() 
-    local param_new_b,gradParam_eps_b = model_b:getParameters() 
+    local param_new_a, gradParam_eps_a = model_a:getParameters() 
+    local param_new_b, gradParam_eps_b = model_b:getParameters() 
     -- in order to reflect loading a new parameter set
     
     local T = torch.Tensor(maxIter,maxIter):fill(0)-- initialize the tri-diagonal matrix T with zeros
     dim = param:size(1)
-    local Vt = torch.CudaTensor(maxIter, dim):fill(0)-- initialize the Krylov matrix with zeros
+    local Vt = torch.Tensor(maxIter, dim):fill(0)-- initialize the Krylov matrix with zeros
     -- initialize:
     local v = torch.randn(param:size()) 
-    v = v:cuda()
-    v = v / torch.norm(v)
+
+    v = v/torch.norm(v)
     local v_old = 0
     local beta = 0;
     
-    for iter =1, maxIter-1 do
-        collectgarbage()
-        --print(iter) -- TODO: comment this out
+    for iter =1, maxIter do
         Vt[iter] = v
         
-        local epsilon = 2*torch.sqrt(1e-7)*(1 + torch.norm(param))/torch.norm(v)
+        epsilon = 2*torch.sqrt(1e-7)*(1 + torch.norm(param))/torch.norm(v)
         param_new_a:copy(param + v * epsilon)
         param_new_b:copy(param - v * epsilon)
 
@@ -185,64 +189,40 @@ function lanczosRNN(inputs,targets,param, delta, model)
         gradParam_eps_b:zero()
         
 
-        --feedforward and backpropagation--       
+        --feedforward and backpropagation
         local outputs = model_a:forward(inputs)
-        --local outputs_b = model_b:forward(inputs)
         local f = criterion:forward(outputs, targets)
         local df_do = criterion:backward(outputs, targets)
         model_a:backward(inputs, df_do) --gradParams_eps should be updated here 
+  
+        f = f/inputs:size(1)
+        gradParam_eps_a:div(inputs:size(1))
         
         local outputs = model_b:forward(inputs)
-        --local outputs_b = model_b:forward(inputs)
         local f = criterion:forward(outputs, targets)
         local df_do = criterion:backward(outputs, targets)
         model_b:backward(inputs, df_do) --gradParams_eps should be updated here 
- 
+    
+        f = f/inputs:size(1)
+        gradParam_eps_b:div(inputs:size(1))
 
         local Hv = (gradParam_eps_a - gradParam_eps_b) / (2*epsilon)
         local ww = Hv -- omega prime
         local alpha = torch.dot(ww, v)
         local w = ww - v*alpha - v_old*beta
-        ww = nil
+        ww = nil 
         Hv = nil
         beta = torch.norm(w)
         v_old = v:clone()
         v = w / beta
         w = nil
         T[iter][iter] = alpha
-        T[iter][iter+1] = beta
-        T[iter+1][iter] = beta 
+        if iter<maxIter then
+            T[iter][iter+1] = beta
+            T[iter+1][iter] = beta 
+        end    
     end
-    collectgarbage()
-    Vt[maxIter] = v
-    local epsilon = 2*torch.sqrt(1e-7)*(1 + torch.norm(param))/torch.norm(v)
-    param_new_a:copy(param + v * epsilon)
-    param_new_b:copy(param - v * epsilon)
 
-    --reset gradients
-    gradParam_eps_a:zero()
-    gradParam_eps_b:zero()
-
-    
-
-    --feedforward and backpropagation
-    local outputs = model_a:forward(inputs)
-    --local outputs_b = model_b:forward(inputs)
-    local f = criterion:forward(outputs, targets)
-    local df_do = criterion:backward(outputs, targets)
-    model_a:backward(inputs, df_do) --gradParams_eps should be updated here 
-
-    local outputs = model_b:forward(inputs)
-    --local outputs_b = model_b:forward(inputs)
-    local f = criterion:forward(outputs, targets)
-    local df_do = criterion:backward(outputs, targets)
-    model_b:backward(inputs, df_do) --gradParams_eps should be updated here 
-
-    Hv = (gradParam_eps_a - gradParam_eps_b) / (2*epsilon)
-    local w = Hv 
-    local alpha = torch.dot(w,v)
-    T[maxIter][maxIter] = alpha -- will get an error if not corret
-    
     -- find eigenvalues and eigenvectors of T
     lambdas, V_T = torch.symeig(T, 'V') -- maximal eigenvalue of T and the corresponding eigenvector
     local yy, i = torch.sort(torch.abs(lambdas))
@@ -252,7 +232,6 @@ function lanczosRNN(inputs,targets,param, delta, model)
     --------------------------------------------------
     -- get eigenvector of H
     V = Vt:t() -- now V is the Krylov matrix
-    v = v:cuda()
     v = torch.mv(V, v)
     v = v / torch.norm(v)
     --compute Hv
@@ -263,65 +242,66 @@ function lanczosRNN(inputs,targets,param, delta, model)
     gradParam_eps_a:zero()
     gradParam_eps_b:zero()
 
-    epsilon = 2*torch.sqrt(1e-7)*(1 + torch.norm(param))/torch.norm(v)
+    local epsilon = 2*torch.sqrt(1e-7)*(1 + torch.norm(param))/torch.norm(v)
 
     --feedforward and backpropagation
     local outputs = model_a:forward(inputs)
-    --local outputs_b = model_b:forward(inputs)
     local f = criterion:forward(outputs, targets)
     local df_do = criterion:backward(outputs, targets)
     model_a:backward(inputs, df_do) --gradParams_eps should be updated here 
 
+    f = f/inputs:size(1)
+    gradParam_eps_a:div(inputs:size(1))
+
     local outputs = model_b:forward(inputs)
-    --local outputs_b = model_b:forward(inputs)
     local f = criterion:forward(outputs, targets)
     local df_do = criterion:backward(outputs, targets)
     model_b:backward(inputs, df_do) --gradParams_eps should be updated here 
 
+    f = f/inputs:size(1)
+    gradParam_eps_b:div(inputs:size(1))
+
     local Hv = (gradParam_eps_a - gradParam_eps_b) / (2*epsilon)
     local diff = torch.norm(Hv - v*lambda)
-    --print(diff) -- TODO: comment this out
+    --print('|Hv-lambda v|: '..diff) -- TODO: comment this out
     converged = torch.abs(lambda) > diff and diff<acc_threshold
     return lambda, v, converged
 end
-
-
-
 ---------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------
 
+function negativeLanczosClassifier(inputs, targets, param, delta, filepath, modelpath, maxEigValH) 
+    local maxIter = 40
+    local acc_threshold = 2
+    local criterion = nn.ClassNLLCriterion()
+    --criterion.sizeAverage = false
+    local model_a  = nn.Sequential ()                                                                                                                                            
+    --model_a:add(dofile(modelFile))
+    model_a:add(dofile(filepath .. modelpath))
+    model_a:add(nn.LogSoftMax())
 
-function negativeLanczosRNN(inputs,targets,param, delta, maxEigValH, model)
-    local maxIter = 50
-    local acc_threshold = .2
-    local crit = nn.ClassNLLCriterion()
-    local criterion = nn.SequencerCriterion(crit)
-    criterion:cuda()
+    local model_b  = nn.Sequential ()                                                                                                                                            
+    --model_b:add(dofile(modelFile))
+    model_b:add(dofile(filepath .. modelpath))
+    model_b:add(nn.LogSoftMax())
 
-    local model_a = model:clone()
-    local model_b = model:clone()
-    
-    local param_new_a,gradParam_eps_a = model_a:getParameters() 
-    local param_new_b,gradParam_eps_b = model_b:getParameters() 
+    local param_new_a, gradParam_eps_a = model_a:getParameters() 
+    local param_new_b, gradParam_eps_b = model_b:getParameters() 
     -- in order to reflect loading a new parameter set
     
     local T = torch.Tensor(maxIter,maxIter):fill(0)-- initialize the tri-diagonal matrix T with zeros
     dim = param:size(1)
-    local Vt = torch.CudaTensor(maxIter, dim):fill(0)-- initialize the Krylov matrix with zeros
+    local Vt = torch.Tensor(maxIter, dim):fill(0)-- initialize the Krylov matrix with zeros
     -- initialize:
-    local v = torch.randn(param:size())
-    v = v:cuda()  
-    v = v / torch.norm(v)
+    local v = torch.randn(param:size()) 
+    v = v/torch.norm(v)
     local v_old = 0
     local beta = 0;
     
-    for iter =1, maxIter-1 do
-        collectgarbage()
-        --print(iter) -- TODO: comment this out
+    for iter =1, maxIter do
         Vt[iter] = v
         
-        local epsilon = 2*torch.sqrt(1e-7)*(1 + torch.norm(param))/torch.norm(v)
-
+        epsilon = 2*torch.sqrt(1e-7)*(1 + torch.norm(param))/torch.norm(v)
         param_new_a:copy(param + v * epsilon)
         param_new_b:copy(param - v * epsilon)
 
@@ -335,60 +315,37 @@ function negativeLanczosRNN(inputs,targets,param, delta, maxEigValH, model)
         local f = criterion:forward(outputs, targets)
         local df_do = criterion:backward(outputs, targets)
         model_a:backward(inputs, df_do) --gradParams_eps should be updated here 
+  
+        f = f/inputs:size(1)
+        gradParam_eps_a:div(inputs:size(1))
+        
         local outputs = model_b:forward(inputs)
         local f = criterion:forward(outputs, targets)
         local df_do = criterion:backward(outputs, targets)
         model_b:backward(inputs, df_do) --gradParams_eps should be updated here 
+    
+        f = f/inputs:size(1)
+        gradParam_eps_b:div(inputs:size(1))
 
         local Hv = (gradParam_eps_a - gradParam_eps_b) / (2*epsilon)
-        -- M = mI-H
         local Mv = v*maxEigValH - Hv
         Hv = nil
         local ww = Mv -- omega prime
         local alpha = torch.dot(ww, v)
         local w = ww - v*alpha - v_old*beta
-        ww = nil
-        Mv = nil
+        ww = nil 
+        Hv = nil
         beta = torch.norm(w)
         v_old = v:clone()
         v = w / beta
         w = nil
         T[iter][iter] = alpha
-        T[iter][iter+1] = beta
-        T[iter+1][iter] = beta 
+        if iter<maxIter then
+            T[iter][iter+1] = beta
+            T[iter+1][iter] = beta 
+        end    
     end
-    collectgarbage()
-    Vt[maxIter] = v
-    local epsilon = 2*torch.sqrt(1e-7)*(1 + torch.norm(param))/torch.norm(v)
-    param_new_a:copy(param + v * epsilon)
-    param_new_b:copy(param - v * epsilon)
 
-    --reset gradients
-    gradParam_eps_a:zero()
-    gradParam_eps_b:zero()
-
-
-
-    --feedforward and backpropagation
-    local outputs = model_a:forward(inputs)
-    --local outputs_b = model_b:forward(inputs)
-    local f = criterion:forward(outputs, targets)
-    local df_do = criterion:backward(outputs, targets)
-    model_a:backward(inputs, df_do) --gradParams_eps should be updated here 
-
-    local outputs = model_b:forward(inputs)
-    --local outputs_b = model_b:forward(inputs)
-    local f = criterion:forward(outputs, targets)
-    local df_do = criterion:backward(outputs, targets)
-    model_b:backward(inputs, df_do) --gradParams_eps should be updated here 
-
-    local Hv = (gradParam_eps_a - gradParam_eps_b) / (2*epsilon)
-    local Mv = v*maxEigValH - Hv
-    
-    local w = Mv 
-    local alpha = torch.dot(w,v)
-    T[maxIter][maxIter] = alpha -- will get an error if not corret
-    
     -- find eigenvalues and eigenvectors of T
     lambdas, V_T = torch.symeig(T, 'V') -- maximal eigenvalue of T and the corresponding eigenvector
     local yy, i = torch.sort(torch.abs(lambdas))
@@ -398,7 +355,6 @@ function negativeLanczosRNN(inputs,targets,param, delta, maxEigValH, model)
     --------------------------------------------------
     -- get eigenvector of H
     V = Vt:t() -- now V is the Krylov matrix
-    v = v:cuda()
     v = torch.mv(V, v)
     v = v / torch.norm(v)
     --compute Hv
@@ -413,16 +369,20 @@ function negativeLanczosRNN(inputs,targets,param, delta, maxEigValH, model)
 
     --feedforward and backpropagation
     local outputs = model_a:forward(inputs)
-    --local outputs_b = model_b:forward(inputs)
     local f = criterion:forward(outputs, targets)
     local df_do = criterion:backward(outputs, targets)
     model_a:backward(inputs, df_do) --gradParams_eps should be updated here 
 
+    f = f/inputs:size(1)
+    gradParam_eps_a:div(inputs:size(1))
+
     local outputs = model_b:forward(inputs)
-    --local outputs_b = model_b:forward(inputs)
     local f = criterion:forward(outputs, targets)
     local df_do = criterion:backward(outputs, targets)
     model_b:backward(inputs, df_do) --gradParams_eps should be updated here 
+
+    f = f/inputs:size(1)
+    gradParam_eps_b:div(inputs:size(1))
 
     local Hv = (gradParam_eps_a - gradParam_eps_b) / (2*epsilon)
     local Mv = v*maxEigValH - Hv
@@ -432,22 +392,24 @@ function negativeLanczosRNN(inputs,targets,param, delta, maxEigValH, model)
     local diff_H = torch.norm(v*minEigValH - Hv)
     
     --print(diff_M) -- TODO: comment this out
-    --print(diff_H) -- TODO: comment this out
+    --print('|Hv-lambda v|: '..diff_H) -- TODO: comment this out
     converged = torch.abs(minEigValH) > diff_H and torch.abs(lambda) > diff_M and diff_H < acc_threshold
     return minEigValH, v, converged
 end
+---------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------
 
 ---------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------
 
 
-function computeLineSearchLossRNN(inputs,targets,parameters,model,eigenVector,stepSize)
-    local crit = nn.ClassNLLCriterion()
-    local criterion = nn.SequencerCriterion(crit)
-    criterion:cuda()
-    
-    local model_a = model:clone()
-    local param_new,gradParam_eps = model_a:getParameters() --I need to do this
+function computeLineSearchLoss(inputs,targets,parameters,filepath,modelpath,eigenVector,stepSize)
+    local model = nn.Sequential()
+    model:add(dofile(filepath .. modelpath))
+    model:add(nn.LogSoftMax())
+    local criterion = nn.ClassNLLCriterion()
+
+    local param_new,gradParam_eps = model:getParameters() --I need to do this
     param_new:copy(parameters)
     param_new:add(eigenVector*stepSize)
 
@@ -460,14 +422,52 @@ end
 ---------------------------------------------------------------------------------------------------------------
 
 
-function computeCurrentLossRNN(inputs,targets,parameters,model)
-    local crit = nn.ClassNLLCriterion()
-    local criterion = nn.SequencerCriterion(crit)
-    criterion:cuda()
-    
-    local model_a = model:clone()
+function computeCurrentLoss(inputs,targets,parameters,filepath,modelpath)
+    local model = nn.Sequential()
+    model:add(dofile(filepath .. modelpath))
+    model:add(nn.LogSoftMax())
+    local criterion = nn.ClassNLLCriterion()
 
-    local param_new,gradParam_eps = model_a:getParameters() --I need to do this
+    local param_new,gradParam_eps = model:getParameters() --I need to do this
+    param_new:copy(parameters)
+
+    outputs = model:forward(inputs)
+    loss = criterion:forward(outputs, targets)
+
+    return loss
+end
+
+---------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------
+
+
+function computeLineSearchLossAE(inputs,targets,parameters,filepath,modelpath,eigenVector,stepSize)
+    local model = nn.Sequential()
+    model:add(dofile(filepath .. modelpath))
+    --model:add(nn.LogSoftMax())
+    local criterion = nn.MSECriterion()
+    --criterion.sizeAverage = false
+
+    local param_new,gradParam_eps = model:getParameters() --I need to do this
+    param_new:copy(parameters)
+    param_new:add(eigenVector*stepSize)
+
+    outputs = model:forward(inputs)
+    loss = criterion:forward(outputs, targets)
+    return loss
+end
+
+---------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------
+
+
+function computeCurrentLossAE(inputs,targets,parameters,filepath,modelpath)
+    local model = nn.Sequential()
+    model:add(dofile(filepath .. modelpath))
+    --model:add(nn.LogSoftMax())
+    local criterion = nn.MSECriterion()
+    --criterion.sizeAverage = false
+    local param_new,gradParam_eps = model:getParameters() --I need to do this
     param_new:copy(parameters)
 
     outputs = model:forward(inputs)

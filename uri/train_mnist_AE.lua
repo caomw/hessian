@@ -1,3 +1,20 @@
+----------------------------------------------------------------------
+-- This script shows how to train different models on the MNIST 
+-- dataset, using multiple optimization techniques (SGD, LBFGS)
+--
+-- This script demonstrates a classical example of training 
+-- well-known models (convnet, MLP, logistic regression)
+-- on a 10-class classification problem. 
+--
+-- It illustrates several points:
+-- 1/ description of the model
+-- 2/ choice of a loss function (criterion) to minimize
+-- 3/ creation of a dataset as a simple Lua table
+-- 4/ description of training and test procedures
+--
+-- Clement Farabet
+----------------------------------------------------------------------
+
 require 'torch'
 require 'nn'
 require 'nnx'
@@ -45,7 +62,7 @@ local dataset_filepath =  opt.currentDir .. '/dataset-mnist.lua'
 --print(dataset_filepath)
 dofile(dataset_filepath)
 
-local iterationMethods_filepath = opt.currentDir .. '/iterationMethods_AE_cuda.lua'
+local iterationMethods_filepath = opt.currentDir .. '/iterationMethods_AE.lua'
 dofile(iterationMethods_filepath)
 
 local update_filepath = opt.currentDir .. '/update.lua'
@@ -60,8 +77,7 @@ print('<torch> set nb of threads to ' .. torch.getnumthreads())
 
 -- use doubles, for SGD
 if opt.optimization == 'SGD' then
-   torch.setdefaulttensortype('torch.FloatTensor')
-   --torch.setdefaulttensortype('torch.DoubleTensor')
+  torch.setdefaulttensortype('torch.DoubleTensor')
 end
 
 -- batch size?
@@ -81,8 +97,7 @@ geometry = {28,28}
 if opt.network == '' then
    -- define model to train
    model = nn.Sequential()
-   model:add(nn.Copy('torch.FloatTensor','torch.CudaTensor'):cuda())
-   model:add(dofile(opt.currentDir .. opt.modelpath):cuda())
+   model:add(dofile(opt.currentDir .. opt.modelpath))
 else
    print('<trainer> reloading previously trained network')
    model = nn.Sequgeometryential()
@@ -99,8 +114,8 @@ print(parameters:size())
 ----------------------------------------------------------------------
 -- loss function: MSE
 
-criterion = nn.MSECriterion():cuda()
---criterion.sizeAverage = false
+criterion = nn.MSECriterion()
+criterion.sizeAverage = false
 
 ----------------------------------------------------------------------
 -- get/create dataset
@@ -116,12 +131,12 @@ end
 
 -- create training set and normalize
 trainData = mnist.loadTrainSet(nbTrainingPatches, geometry)
---trainData.data:div(255)
+--trainData.data:mul(255)
 --trainData:normalizeGlobal(mean, std)
 
 -- create test set and normalize
 testData = mnist.loadTestSet(nbTestingPatches, geometry)
---testData.data:div(255)
+--testData.data:mul(255)
 --testData:normalizeGlobal(mean, std)
 
 ----------------------------------------------------------------------
@@ -164,8 +179,8 @@ function trainSGD(dataset)
    print("<trainer> online epoch # " .. epoch .. ' [batchSize = ' .. opt.batchSize .. ']')
    for t = 1,dataset:size(),opt.batchSize do
       -- create mini batch
-      local inputs = torch.CudaTensor(opt.batchSize,1,geometry[1],geometry[2])
-      local targets = torch.CudaTensor(opt.batchSize)
+      local inputs = torch.Tensor(opt.batchSize,1,geometry[1],geometry[2])
+      local targets = torch.Tensor(opt.batchSize)
       local k = 1
       for i = t,math.min(t+opt.batchSize-1,dataset:size()) do
          -- load new sample
@@ -220,24 +235,20 @@ function trainSGD(dataset)
     			gradParameters:mul(shrink_factor)
 		end
 	end
-         -- update confusion
-         --for i = 1,opt.batchSize do
-         --   confusion:add(outputs[i], targets[i])
-         --end
+ 
+        f = f/inputs:size(1)
+        gradParameters:div(inputs:size(1))
 
-         --f = f/inputs:size(1)
-         --gradParameters:div(inputs:size(1))
+        minibatch_norm_gradParam = torch.norm(gradParameters) 
 
-         minibatch_norm_gradParam = torch.norm(gradParameters) 
+        local clock = os.clock
+        function sleep(n)  -- seconds
+              local t0 = clock()
+              while clock() - t0 <= n do end
+        end
 
-         local clock = os.clock
-         function sleep(n)  -- seconds
-               local t0 = clock()
-               while clock() - t0 <= n do end
-         end
-
-         -- return f and df/dX
-         return f,gradParameters
+        -- return f and df/dX
+        return f,gradParameters
       end
       -- optimize on current mini-batch
       if opt.optimization == 'LBFGS' then
@@ -260,7 +271,7 @@ function trainSGD(dataset)
 	 sgdState = sgdState or {
 	    learningRate = opt.learningRate,
 	    momentum = opt.momentum,
-	    learningRateDecay = 5e-7
+	    learningRateDecay = 2e-6
 	 }
 	 _, fs = optim.sgd(feval, parameters, sgdState)
          currentLoss = currentLoss + fs[1]
@@ -310,7 +321,7 @@ end
 function trainHes(dataset)
    -- epoch tracker
    epoch = epoch or 1
-
+   ccost = 0
    -- local vars
    local time = sys.clock()
 
@@ -321,8 +332,8 @@ function trainHes(dataset)
    print("<trainer> online epoch # " .. epoch .. ' [batchSize = ' .. opt.batchSizeHessian .. ']')
    for t = 1,dataset:size(),opt.batchSizeHessian do
       -- create mini batch
-      local inputs = torch.CudaTensor(opt.batchSizeHessian,1,geometry[1],geometry[2])
-      local targets = torch.CudaTensor(opt.batchSizeHessian)
+      local inputs = torch.Tensor(opt.batchSizeHessian,1,geometry[1],geometry[2])
+      local targets = torch.Tensor(opt.batchSizeHessian)
       local k = 1
       for i = t,math.min(t+opt.batchSizeHessian-1,dataset:size()) do
          -- load new sample
@@ -371,12 +382,8 @@ function trainHes(dataset)
             gradParameters:add( sign(parameters):mul(opt.coefL1) + parameters:clone():mul(opt.coefL2) )
          end
 
-         --f = f/inputs:size(1)
-
-         -- update confusion
-         --for i = 1,opt.batchSize do
-         --   confusion:add(outputs[i], targets[i])
-         --end
+         f = f/inputs:size(1)
+         gradParameters:div(inputs:size(1))
 
          minibatch_norm_gradParam = torch.norm(gradParameters) 
 
@@ -388,46 +395,54 @@ function trainHes(dataset)
 	 local doGradStep = 1
    	 local v = -1
 	 local stepSize = -1
-         --if opt.hessian then
-        --local flag = 0
- 	if torch.norm(gradParameters) < opt.gradNormThresh then
+         --print("gradNorm = " ..torch.norm(gradParameters))
+ 	 if torch.norm(gradParameters) < opt.gradNormThresh then
 	     --flag = flag + 1
 	     -- First iteration method
 	     if opt.iterationMethod =="power" then
-		 maxEigValH, v, converged1 = hessianPowermethodAE(inputs,inputs,parameters:clone(),gradParameters:clone(),opt.iterMethodDelta,opt.currentDir,opt.modelpath)
+		 maxEigValH, v, converged1 = hessianPowermethodAE(inputs, parameters:clone(),opt.iterMethodDelta,opt.currentDir,opt.modelpath)
 	     end
 	     if opt.iterationMethod =="lanczos" then
-		 maxEigValH, v, converged1 = lanczosAE(inputs,inputs,parameters:clone(),gradParameters:clone(),opt.iterMethodDelta,opt.currentDir,opt.modelpath)
+		 maxEigValH, v, converged1 = lanczosAE(inputs, parameters:clone(),opt.iterMethodDelta,opt.currentDir,opt.modelpath)
 	     end
 	     convergeTable1[#convergeTable1+1] = converged1
 	     eigenTable[#eigenTable+1] = maxEigValH
              collectgarbage()
 	     -- Second iteration method
 	     if opt.iterationMethod =="power" then  
-		 minEigValH, v, converged2 = negativePowermethodAE(inputs,inputs,parameters:clone(),gradParameters:clone(),opt.iterMethodDelta,opt.currentDir,maxEigValH,opt.modelpath)
+		 minEigValH, v, converged2 = negativePowermethodAE(inputs, parameters:clone(),opt.iterMethodDelta,opt.currentDir,opt.modelpath,maxEigValH)
 	     end
-	     if opt.iterationMethod =="lanczos"  then 
-		 minEigValH, v, converged2 = negativeLanczosAE(inputs,inputs,parameters:clone(),gradParameters:clone(),opt.iterMethodDelta,opt.currentDir,maxEigValH,opt.modelpath)
+	     if opt.iterationMethod =="lanczos"  then
+		 minEigValH, v, converged2 = negativeLanczosAE(inputs, parameters:clone(),opt.iterMethodDelta,opt.currentDir,opt.modelpath,maxEigValH)
 	     end
 	     convergeTable2[#convergeTable2+1] = converged2
+             --print(converged1)
+             --print(converged2)
 	     eigenTableNeg[#eigenTableNeg+1] = minEigValH
 	     if minEigValH < 0 and converged1 and converged2 then --the Hessian has a reliable negative eigenvalue so we should proceed to this direction
 		 local doGradStep = 0;
 		 --flag = flag + 1
+                 local gradStepSize = torch.norm(gradParameters) * opt.learningRate
+                 --print("opt.learningRate = " .. opt.learningRate)
+                 --print("gradStepSize = " .. gradStepSize)
 		 local cost_before = computeCurrentLossAE(inputs,inputs,parameters:clone(),opt.currentDir,opt.modelpath) 
 		 if opt.lineSearch then
-		     local searchTable = {2^-6, 2^-4, 2^-2, 2^0, 2^2, 2^4, 2^6, 2^8, 2^10, 2^12,
-		                          -2^-6, -2^-4, -2^-2, -2^0, -2^2, -2^4, -2^6, -2^8, -2^10, -2^12}
+		     local searchTable = {2^-7, 2^-6, 2^-5, 2^-4, 2^-3, 2^-2, 2^-1, 2^0, 2^1, 2^2, 2^3, gradStepSize,
+		                          -2^-7, -2^-6, -2^-5, -2^-4, -2^-3, -2^-2, -2^-1, -2^0, -2^1, -2^2, -2^3, -gradStepSize}
 		     local temp_loss = 10e8
+                     --print("cost_before = " .. cost_before)
+                     --print("gradStepSize = " .. gradStepSize)
 		     for i=1,#searchTable do
-		        local linesearch_stepSize = opt.learningRate * searchTable[i]
+		        local linesearch_stepSize = searchTable[i]
 		        local loss_after = computeLineSearchLossAE(inputs,inputs,parameters:clone(),opt.currentDir,opt.modelpath,v,linesearch_stepSize)
+                        --print("linesearch_stepSize  = " .. linesearch_stepSize)
+                        --print("loss_after = " .. loss_after)
 		        if (loss_after - cost_before) < temp_loss then
 		            id_record = i
 		            temp_loss = loss_after - cost_before
 		        end
 		    end
-		    stepSize = opt.learningRate * searchTable[id_record]  
+		    stepSize = searchTable[id_record]  
 		    lineSearchDecisionTable[#lineSearchDecisionTable+1] = stepSize
 		 end
 		 local parametersH = parameters:clone():add(v * stepSize) -- Hessian update
@@ -439,6 +454,9 @@ function trainHes(dataset)
 		 cost_before_acc[#cost_before_acc+1] = cost_before
 		 cost_after_accH[#cost_after_accH+1] = cost_afterH
 		 cost_after_accG[#cost_after_accG+1] = cost_afterG
+                 print("cost_before = " .. cost_before)
+                 print("cost_afterH = " .. cost_afterH)
+                 print("cost_afterG = " .. cost_afterG)
 		 --if cost_before > cost_after then flag = flag + 1 end
 		 --sleep(2)
 	     end
@@ -472,11 +490,11 @@ function trainHes(dataset)
 	 sgdState = sgdState or {
 	    learningRate = opt.learningRate,
 	    momentum = opt.momentum,
-	    learningRateDecay = 5e-7
+	    learningRateDecay = 5e-6
 	 }
 	 _, fs = update(feval, parameters, sgdState)
+         --print("fs = " .. fs[1])
          currentLoss = currentLoss + fs[1]
-
          -- disp progress
          xlua.progress(t, dataset:size())
 
@@ -496,6 +514,7 @@ function trainHes(dataset)
    -- print confusion matrix
    --print(confusion)
    local numBatches = dataset:size()/opt.batchSizeHessian
+   --print("numBatches = " .. numBatches)
    currentLoss = currentLoss / numBatches
    trainLogger:add{['MSE (train set)'] = currentLoss}
    print("<trainer> MSE (train set) = " .. currentLoss)
@@ -530,8 +549,8 @@ function test(dataset)
       xlua.progress(t, dataset:size())
 
       -- create mini batch
-      local inputs = torch.CudaTensor(bs,1,geometry[1],geometry[2])
-      local targets = torch.CudaTensor(bs)
+      local inputs = torch.Tensor(bs,1,geometry[1],geometry[2])
+      local targets = torch.Tensor(bs)
       local k = 1
       for i = t,math.min(t+bs-1,dataset:size()) do
          -- load new sample
@@ -547,13 +566,8 @@ function test(dataset)
       -- test samples
       local preds = model:forward(inputs)
       testLoss = criterion:forward(preds, inputs)
-      --testLoss = testLoss/inputs:size(1)
+      testLoss = testLoss/inputs:size(1)
 
-
-      -- confusion:
-      --for i = 1,bs do
-      --   confusion:add(preds[i], inputs[i])
-      --end
       currentLoss = currentLoss + testLoss
    end
 
@@ -565,7 +579,7 @@ function test(dataset)
    -- print confusion matrix
    --print(confusion)
    local numBatches = dataset:size()/bs
-   currentLoss = currentLoss / numBatches
+   currentLoss = currentLoss /  numBatches
    print("<trainer> MSE (test set) = " .. currentLoss)
    testLogger:add{['% MSE (test set)'] = currentLoss}
    --confusion:zero()
@@ -594,7 +608,7 @@ while flag do
       testLogger:plot()
    end
 end
-
+print('***********************************************:')
 flag = true
 while flag do
    -- train/test  

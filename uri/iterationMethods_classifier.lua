@@ -1,24 +1,22 @@
 require 'nn'
-require 'cunn'
-
-function hessianPowermethodAE(inputs, param, delta, filepath, modelpath) 
-    local maxIter = 100
-    local acc_threshold = 2
-    local criterion = nn.MSECriterion():cuda()
-    criterion.sizeAverage = false
+function hessianPowermethodClassifier(inputs, targets, param, delta, filepath, modelpath) 
+    collectgarbage()
+    local maxIter = 20
+    local acc_threshold = .2
+    local criterion = nn.ClassNLLCriterion()
+    --criterion.sizeAverage = false
     local model_a  = nn.Sequential ()                                                                                                                                            
-    model_a:add(nn.Copy('torch.FloatTensor','torch.CudaTensor'):cuda())
-    --model_a:add(dofile(modelFile):cuda())
-    model_a:add(dofile(filepath .. modelpath):cuda())
+    --model_a:add(dofile(modelFile))
+    model_a:add(dofile(filepath .. modelpath))
+    model_a:add(nn.LogSoftMax())
 
-    local model_b = nn.Sequential()
-    model_b:add(nn.Copy('torch.FloatTensor','torch.CudaTensor'):cuda())
-    --model_b:add(dofile(modelFile):cuda())
-    model_b:add(dofile(filepath .. modelpath):cuda())
+    local model_b  = nn.Sequential ()                                                                                                                                            
+    --model_b:add(dofile(modelFile))
+    model_b:add(dofile(filepath .. modelpath))
+    model_b:add(nn.LogSoftMax())
 
-    local d = torch.randn(param:size()) --need to check
+    local d = torch.randn(param:size())
     d = d / torch.norm(d)
-    d = d:cuda()
     
     local diff = 10
     local param_new_a, gradParam_eps_a = model_a:getParameters() 
@@ -27,7 +25,8 @@ function hessianPowermethodAE(inputs, param, delta, filepath, modelpath)
     local numIters = 0
     while diff > delta and numIters < maxIter do
         numIters = numIters+1
-        epsilon = 2*torch.sqrt(1e-7)*(1 + torch.norm(param))/torch.norm(d)
+        epsilon = 2*torch.sqrt(1e-15)*(1 + torch.norm(param))/torch.norm(d)
+
         --print(numIters) --TODO: comment this out
         param_new_a:copy(param + d * epsilon)
         param_new_b:copy(param - d * epsilon)
@@ -38,20 +37,20 @@ function hessianPowermethodAE(inputs, param, delta, filepath, modelpath)
 
         --feedforward and backpropagation
         local outputs = model_a:forward(inputs)
-        local f = criterion:forward(outputs, inputs)
-        local df_do = criterion:backward(outputs, inputs)
+        local f = criterion:forward(outputs, targets)
+        local df_do = criterion:backward(outputs, targets)
         model_a:backward(inputs, df_do) --gradParams_eps should be updated here 
              
-        f = f/inputs:size(1)
-        gradParam_eps_a:div(inputs:size(1))
+        --f = f/inputs:size(1)
+        --gradParam_eps_a:div(inputs:size(1))
 
         local outputs = model_b:forward(inputs)
-        local f = criterion:forward(outputs, inputs)
-        local df_do = criterion:backward(outputs, inputs)
+        local f = criterion:forward(outputs, targets)
+        local df_do = criterion:backward(outputs, targets)
         model_b:backward(inputs, df_do) --gradParams_eps should be updated here 
         
-        f = f/inputs:size(1)
-        gradParam_eps_b:div(inputs:size(1))
+        --f = f/inputs:size(1)
+        --gradParam_eps_b:div(inputs:size(1))
   
 
         local Hd = (gradParam_eps_a - gradParam_eps_b) / (2*epsilon)
@@ -68,27 +67,28 @@ function hessianPowermethodAE(inputs, param, delta, filepath, modelpath)
     end
     return lambda, d, converged
 end
+
+
 ---------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------
 
-function negativePowermethodAE(inputs, param, delta, filepath, modelpath, maxEigValH) 
-    local maxIter = 100
-    local acc_threshold = 2
-    local criterion = nn.MSECriterion():cuda()
-    criterion.sizeAverage = false
+function negativePowermethodClassifier(inputs, targets, param, delta, filepath, modelpath, maxEigValH) 
+    local maxIter = 40
+    local acc_threshold = .2
+    local criterion = nn.ClassNLLCriterion()
+    --criterion.sizeAverage = false
     local model_a  = nn.Sequential ()                                                                                                                                            
-    model_a:add(nn.Copy('torch.FloatTensor','torch.CudaTensor'):cuda())
-    --model_a:add(dofile(modelFile):cuda())
-    model_a:add(dofile(filepath .. modelpath):cuda())
+    --model_a:add(dofile(modelFile))
+    model_a:add(dofile(filepath .. modelpath))
+    model_a:add(nn.LogSoftMax())
 
-    local model_b = nn.Sequential()
-    model_b:add(nn.Copy('torch.FloatTensor','torch.CudaTensor'):cuda())
-    --model_b:add(dofile(modelFile):cuda())
-    model_b:add(dofile(filepath .. modelpath):cuda())
+    local model_b  = nn.Sequential ()                                                                                                                                            
+    --model_b:add(dofile(modelFile))
+    model_b:add(dofile(filepath .. modelpath))
+    model_b:add(nn.LogSoftMax())
 
     local d = torch.randn(param:size()) --need to check
     d = d / torch.norm(d)
-    d = d:cuda()
     
     local diff = 10
     local param_new_a, gradParam_eps_a = model_a:getParameters() 
@@ -97,7 +97,7 @@ function negativePowermethodAE(inputs, param, delta, filepath, modelpath, maxEig
     local numIters = 0
     while diff > delta and numIters < maxIter do
         numIters = numIters+1
-        epsilon = 2*torch.sqrt(1e-7)*(1 + torch.norm(param))/torch.norm(d)
+        epsilon = 2*torch.sqrt(1e-15)*(1 + torch.norm(param))/torch.norm(d)
 
         param_new_a:copy(param + d * epsilon)
         param_new_b:copy(param - d * epsilon)
@@ -108,20 +108,20 @@ function negativePowermethodAE(inputs, param, delta, filepath, modelpath, maxEig
 
         --feedforward and backpropagation
         local outputs = model_a:forward(inputs)
-        local f = criterion:forward(outputs, inputs)
-        local df_do = criterion:backward(outputs, inputs)
+        local f = criterion:forward(outputs, targets)
+        local df_do = criterion:backward(outputs, targets)
         model_a:backward(inputs, df_do) --gradParams_eps should be updated here 
              
-        f = f/inputs:size(1)
-        gradParam_eps_a:div(inputs:size(1))
+        --f = f/inputs:size(1)
+        --gradParam_eps_a:div(inputs:size(1))
 
         local outputs = model_b:forward(inputs)
-        local f = criterion:forward(outputs, inputs)
-        local df_do = criterion:backward(outputs, inputs)
+        local f = criterion:forward(outputs, targets)
+        local df_do = criterion:backward(outputs, targets)
         model_b:backward(inputs, df_do) --gradParams_eps should be updated here 
         
-        f = f/inputs:size(1)
-        gradParam_eps_b:div(inputs:size(1))
+        --f = f/inputs:size(1)
+        --gradParam_eps_b:div(inputs:size(1))
   
 
         local Hd = (gradParam_eps_a - gradParam_eps_b) / (2*epsilon)
@@ -146,44 +146,42 @@ end
 ---------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------
 
-
 ---------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------
 
-
-function lanczosAE(inputs, param, delta, filepath, modelpath) 
+function lanczosClassifier(inputs, targets, param, delta, filepath, modelpath) 
+    collectgarbage()
     local maxIter = 20
-    local acc_threshold = .2
-    local criterion = nn.MSECriterion():cuda()
-    criterion.sizeAverage = false
+    local acc_threshold = 2
+    local criterion = nn.ClassNLLCriterion()
+    --criterion.sizeAverage = false
     local model_a  = nn.Sequential ()                                                                                                                                            
-    model_a:add(nn.Copy('torch.FloatTensor','torch.CudaTensor'):cuda())
-    --model_a:add(dofile(modelFile):cuda())
-    model_a:add(dofile(filepath .. modelpath):cuda())
+    --model_a:add(dofile(modelFile))
+    model_a:add(dofile(filepath .. modelpath))
+    model_a:add(nn.LogSoftMax())
 
-    local model_b = nn.Sequential()
-    model_b:add(nn.Copy('torch.FloatTensor','torch.CudaTensor'):cuda())
-    --model_b:add(dofile(modelFile):cuda())
-    model_b:add(dofile(filepath .. modelpath):cuda())
-
+    local model_b  = nn.Sequential ()                                                                                                                                            
+    --model_b:add(dofile(modelFile))
+    model_b:add(dofile(filepath .. modelpath))
+    model_b:add(nn.LogSoftMax())
+    
     local param_new_a, gradParam_eps_a = model_a:getParameters() 
     local param_new_b, gradParam_eps_b = model_b:getParameters() 
     -- in order to reflect loading a new parameter set
     
     local T = torch.Tensor(maxIter,maxIter):fill(0)-- initialize the tri-diagonal matrix T with zeros
     dim = param:size(1)
-    local Vt = torch.CudaTensor(maxIter, dim):fill(0)-- initialize the Krylov matrix with zeros
+    local Vt = torch.Tensor(maxIter, dim):fill(0)-- initialize the Krylov matrix with zeros
     -- initialize:
     local v = torch.randn(param:size()) 
-    v = v:cuda()
     v = v/torch.norm(v)
     local v_old = 0
     local beta = 0;
     
     for iter =1, maxIter do
+        --print(iter)
         Vt[iter] = v
-        
-        epsilon = 2*torch.sqrt(1e-7)*(1 + torch.norm(param))/torch.norm(v)
+        epsilon = 2*torch.sqrt(1e-15)*(1 + torch.norm(param))/torch.norm(v)
         param_new_a:copy(param + v * epsilon)
         param_new_b:copy(param - v * epsilon)
 
@@ -194,20 +192,20 @@ function lanczosAE(inputs, param, delta, filepath, modelpath)
 
         --feedforward and backpropagation
         local outputs = model_a:forward(inputs)
-        local f = criterion:forward(outputs, inputs)
-        local df_do = criterion:backward(outputs, inputs)
+        local f = criterion:forward(outputs, targets)
+        local df_do = criterion:backward(outputs, targets)
         model_a:backward(inputs, df_do) --gradParams_eps should be updated here 
   
-        f = f/inputs:size(1)
-        gradParam_eps_a:div(inputs:size(1))
+        --f = f/inputs:size(1)
+        --gradParam_eps_a:div(inputs:size(1))
         
         local outputs = model_b:forward(inputs)
-        local f = criterion:forward(outputs, inputs)
-        local df_do = criterion:backward(outputs, inputs)
+        local f = criterion:forward(outputs, targets)
+        local df_do = criterion:backward(outputs, targets)
         model_b:backward(inputs, df_do) --gradParams_eps should be updated here 
     
-        f = f/inputs:size(1)
-        gradParam_eps_b:div(inputs:size(1))
+        --f = f/inputs:size(1)
+        --gradParam_eps_b:div(inputs:size(1))
 
         local Hv = (gradParam_eps_a - gradParam_eps_b) / (2*epsilon)
         local ww = Hv -- omega prime
@@ -235,7 +233,6 @@ function lanczosAE(inputs, param, delta, filepath, modelpath)
     --------------------------------------------------
     -- get eigenvector of H
     V = Vt:t() -- now V is the Krylov matrix
-    v = v:cuda()
     v = torch.mv(V, v)
     v = v / torch.norm(v)
     --compute Hv
@@ -246,24 +243,24 @@ function lanczosAE(inputs, param, delta, filepath, modelpath)
     gradParam_eps_a:zero()
     gradParam_eps_b:zero()
 
-    local epsilon = 2*torch.sqrt(1e-7)*(1 + torch.norm(param))/torch.norm(v)
+    local epsilon = 2*torch.sqrt(1e-15)*(1 + torch.norm(param))/torch.norm(v)
 
     --feedforward and backpropagation
     local outputs = model_a:forward(inputs)
-    local f = criterion:forward(outputs, inputs)
-    local df_do = criterion:backward(outputs, inputs)
+    local f = criterion:forward(outputs, targets)
+    local df_do = criterion:backward(outputs, targets)
     model_a:backward(inputs, df_do) --gradParams_eps should be updated here 
 
-    f = f/inputs:size(1)
-    gradParam_eps_a:div(inputs:size(1))
+    --f = f/inputs:size(1)
+    --gradParam_eps_a:div(inputs:size(1))
 
     local outputs = model_b:forward(inputs)
-    local f = criterion:forward(outputs, inputs)
-    local df_do = criterion:backward(outputs, inputs)
+    local f = criterion:forward(outputs, targets)
+    local df_do = criterion:backward(outputs, targets)
     model_b:backward(inputs, df_do) --gradParams_eps should be updated here 
 
-    f = f/inputs:size(1)
-    gradParam_eps_b:div(inputs:size(1))
+    --f = f/inputs:size(1)
+    --gradParam_eps_b:div(inputs:size(1))
 
     local Hv = (gradParam_eps_a - gradParam_eps_b) / (2*epsilon)
     local diff = torch.norm(Hv - v*lambda)
@@ -275,21 +272,20 @@ end
 ---------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------
 
-
-function negativeLanczosAE(inputs, param, delta, filepath, modelpath, maxEigValH) 
+function negativeLanczosClassifier(inputs, targets, param, delta, filepath, modelpath, maxEigValH) 
     local maxIter = 40
-    local acc_threshold = .2
-    local criterion = nn.MSECriterion():cuda()
-    criterion.sizeAverage = false
+    local acc_threshold = 2
+    local criterion = nn.ClassNLLCriterion()
+    --criterion.sizeAverage = false
     local model_a  = nn.Sequential ()                                                                                                                                            
-    model_a:add(nn.Copy('torch.FloatTensor','torch.CudaTensor'):cuda())
-    --model_a:add(dofile(modelFile):cuda())
-    model_a:add(dofile(filepath .. modelpath):cuda())
+    --model_a:add(dofile(modelFile))
+    model_a:add(dofile(filepath .. modelpath))
+    model_a:add(nn.LogSoftMax())
 
-    local model_b = nn.Sequential()
-    model_b:add(nn.Copy('torch.FloatTensor','torch.CudaTensor'):cuda())
-    --model_b:add(dofile(modelFile):cuda())
-    model_b:add(dofile(filepath .. modelpath):cuda())
+    local model_b  = nn.Sequential ()                                                                                                                                            
+    --model_b:add(dofile(modelFile))
+    model_b:add(dofile(filepath .. modelpath))
+    model_b:add(nn.LogSoftMax())
 
     local param_new_a, gradParam_eps_a = model_a:getParameters() 
     local param_new_b, gradParam_eps_b = model_b:getParameters() 
@@ -297,10 +293,9 @@ function negativeLanczosAE(inputs, param, delta, filepath, modelpath, maxEigValH
     
     local T = torch.Tensor(maxIter,maxIter):fill(0)-- initialize the tri-diagonal matrix T with zeros
     dim = param:size(1)
-    local Vt = torch.CudaTensor(maxIter, dim):fill(0)-- initialize the Krylov matrix with zeros
+    local Vt = torch.Tensor(maxIter, dim):fill(0)-- initialize the Krylov matrix with zeros
     -- initialize:
     local v = torch.randn(param:size()) 
-    v = v:cuda()
     v = v/torch.norm(v)
     local v_old = 0
     local beta = 0;
@@ -308,7 +303,7 @@ function negativeLanczosAE(inputs, param, delta, filepath, modelpath, maxEigValH
     for iter =1, maxIter do
         Vt[iter] = v
         
-        epsilon = 2*torch.sqrt(1e-7)*(1 + torch.norm(param))/torch.norm(v)
+        epsilon = 2*torch.sqrt(1e-15)*(1 + torch.norm(param))/torch.norm(v)
         param_new_a:copy(param + v * epsilon)
         param_new_b:copy(param - v * epsilon)
 
@@ -319,27 +314,27 @@ function negativeLanczosAE(inputs, param, delta, filepath, modelpath, maxEigValH
 
         --feedforward and backpropagation
         local outputs = model_a:forward(inputs)
-        local f = criterion:forward(outputs, inputs)
-        local df_do = criterion:backward(outputs, inputs)
+        local f = criterion:forward(outputs, targets)
+        local df_do = criterion:backward(outputs, targets)
         model_a:backward(inputs, df_do) --gradParams_eps should be updated here 
   
-        f = f/inputs:size(1)
-        gradParam_eps_a:div(inputs:size(1))
+        --f = f/inputs:size(1)
+        --gradParam_eps_a:div(inputs:size(1))
         
         local outputs = model_b:forward(inputs)
-        local f = criterion:forward(outputs, inputs)
-        local df_do = criterion:backward(outputs, inputs)
+        local f = criterion:forward(outputs, targets)
+        local df_do = criterion:backward(outputs, targets)
         model_b:backward(inputs, df_do) --gradParams_eps should be updated here 
     
-        f = f/inputs:size(1)
-        gradParam_eps_b:div(inputs:size(1))
+        --f = f/inputs:size(1)
+        --gradParam_eps_b:div(inputs:size(1))
 
         local Hv = (gradParam_eps_a - gradParam_eps_b) / (2*epsilon)
         local Mv = v*maxEigValH - Hv
         Hv = nil
         local ww = Mv -- omega prime
         local alpha = torch.dot(ww, v)
-        local w = ww - v*alpha - v_old*beta
+        w = ww - v*alpha - v_old*beta
         ww = nil 
         Hv = nil
         beta = torch.norm(w)
@@ -362,7 +357,6 @@ function negativeLanczosAE(inputs, param, delta, filepath, modelpath, maxEigValH
     --------------------------------------------------
     -- get eigenvector of H
     V = Vt:t() -- now V is the Krylov matrix
-    v = v:cuda()
     v = torch.mv(V, v)
     v = v / torch.norm(v)
     --compute Hv
@@ -373,24 +367,24 @@ function negativeLanczosAE(inputs, param, delta, filepath, modelpath, maxEigValH
     gradParam_eps_a:zero()
     gradParam_eps_b:zero()
 
-    local epsilon = 2*torch.sqrt(1e-7)*(1 + torch.norm(param))/torch.norm(v)
+    local epsilon = 2*torch.sqrt(1e-15)*(1 + torch.norm(param))/torch.norm(v)
 
     --feedforward and backpropagation
     local outputs = model_a:forward(inputs)
-    local f = criterion:forward(outputs, inputs)
-    local df_do = criterion:backward(outputs, inputs)
+    local f = criterion:forward(outputs, targets)
+    local df_do = criterion:backward(outputs, targets)
     model_a:backward(inputs, df_do) --gradParams_eps should be updated here 
 
-    f = f/inputs:size(1)
-    gradParam_eps_a:div(inputs:size(1))
+    --f = f/inputs:size(1)
+    --gradParam_eps_a:div(inputs:size(1))
 
     local outputs = model_b:forward(inputs)
-    local f = criterion:forward(outputs, inputs)
-    local df_do = criterion:backward(outputs, inputs)
+    local f = criterion:forward(outputs, targets)
+    local df_do = criterion:backward(outputs, targets)
     model_b:backward(inputs, df_do) --gradParams_eps should be updated here 
 
-    f = f/inputs:size(1)
-    gradParam_eps_b:div(inputs:size(1))
+    --f = f/inputs:size(1)
+    --gradParam_eps_b:div(inputs:size(1))
 
     local Hv = (gradParam_eps_a - gradParam_eps_b) / (2*epsilon)
     local Mv = v*maxEigValH - Hv
@@ -403,18 +397,20 @@ function negativeLanczosAE(inputs, param, delta, filepath, modelpath, maxEigValH
     --print('|Hv-lambda v|: '..diff_H) -- TODO: comment this out
     converged = torch.abs(minEigValH) > diff_H and torch.abs(lambda) > diff_M and diff_H < acc_threshold
     return minEigValH, v, converged
+
 end
 ---------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------
 
+---------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------
 
-function computeLineSearchLossAE(inputs,targets,parameters,filepath,modelpath,eigenVector,stepSize)
+
+function computeLineSearchLoss(inputs,targets,parameters,filepath,modelpath,eigenVector,stepSize)
     local model = nn.Sequential()
-    model:add(nn.Copy('torch.FloatTensor','torch.CudaTensor'):cuda())
-    model:add(dofile(filepath .. modelpath):cuda())
-    --model:add(nn.LogSoftMax())
-    local criterion = nn.MSECriterion():cuda()
-    criterion.sizeAverage = false
+    model:add(dofile(filepath .. modelpath))
+    model:add(nn.LogSoftMax())
+    local criterion = nn.ClassNLLCriterion()
 
     local param_new,gradParam_eps = model:getParameters() --I need to do this
     param_new:copy(parameters)
@@ -422,9 +418,45 @@ function computeLineSearchLossAE(inputs,targets,parameters,filepath,modelpath,ei
 
     outputs = model:forward(inputs)
     loss = criterion:forward(outputs, targets)
+    return loss
+end
+
+---------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------
 
 
-    loss = loss/inputs:size(1)
+function computeCurrentLoss(inputs,targets,parameters,filepath,modelpath)
+    local model = nn.Sequential()
+    model:add(dofile(filepath .. modelpath))
+    model:add(nn.LogSoftMax())
+    local criterion = nn.ClassNLLCriterion()
+
+    local param_new,gradParam_eps = model:getParameters() --I need to do this
+    param_new:copy(parameters)
+
+    outputs = model:forward(inputs)
+    loss = criterion:forward(outputs, targets)
+
+    return loss
+end
+
+---------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------
+
+
+function computeLineSearchLossAE(inputs,targets,parameters,filepath,modelpath,eigenVector,stepSize)
+    local model = nn.Sequential()
+    model:add(dofile(filepath .. modelpath))
+    --model:add(nn.LogSoftMax())
+    local criterion = nn.MSECriterion()
+    --criterion.sizeAverage = false
+
+    local param_new,gradParam_eps = model:getParameters() --I need to do this
+    param_new:copy(parameters)
+    param_new:add(eigenVector*stepSize)
+
+    outputs = model:forward(inputs)
+    loss = criterion:forward(outputs, targets)
     return loss
 end
 
@@ -434,17 +466,15 @@ end
 
 function computeCurrentLossAE(inputs,targets,parameters,filepath,modelpath)
     local model = nn.Sequential()
-    model:add(nn.Copy('torch.FloatTensor','torch.CudaTensor'):cuda())
-    model:add(dofile(filepath .. modelpath):cuda())
+    model:add(dofile(filepath .. modelpath))
     --model:add(nn.LogSoftMax())
-    local criterion = nn.MSECriterion():cuda()
-    criterion.sizeAverage = false
+    local criterion = nn.MSECriterion()
+    --criterion.sizeAverage = false
     local param_new,gradParam_eps = model:getParameters() --I need to do this
     param_new:copy(parameters)
 
     outputs = model:forward(inputs)
     loss = criterion:forward(outputs, targets)
-    loss = loss/inputs:size(1)
 
     return loss
 end

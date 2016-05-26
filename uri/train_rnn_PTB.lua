@@ -24,7 +24,7 @@ cmd:option('--maxnormout', -1, 'max l2-norm of each layer\'s output neuron weigh
 cmd:option('--cutoff', -1, 'max l2-norm of concatenation of all gradParam tensors')
 cmd:option('--cuda', true, 'use CUDA')
 cmd:option('--device', 1, 'sets the device (GPU) to use')
-cmd:option('--maxepoch', 400, 'maximum number of SGD epochs to run')
+cmd:option('--maxepoch', 1, 'maximum number of SGD epochs to run')
 
 cmd:option('--earlystop', 50, 'maximum number of epochs to wait to find a better local minima for early-stopping')
 cmd:option('--progress', false, 'print progress bar')
@@ -46,8 +46,9 @@ cmd:option('--id', '', 'id string of this experiment (used to name output file) 
 -- HFSF
 cmd:option('--maxepochHessian', 20, 'maximum number of HFSF epochs to run')
 cmd:option('--gradNormThresh', 100, 'minimal gradient norm to call HFSF')
-cmd:option('--iterationMethod', 'lanczos')
+cmd:option('--iterationMethod', 'power')
 cmd:option('--currentDir',    'foo', 'current directory that is executed this script')
+cmd:option('--iterMethodDelta',    2)
 
 
 
@@ -296,6 +297,13 @@ end
 print("Evaluate model using : ")
 print("th scripts/evaluate-rnnlm.lua --xplogpath "..paths.concat(opt.savepath, opt.id..'.t7')..(opt.cuda and '--cuda' or ''))
 
+local filename = paths.concat(opt.savepath, opt.id..'.t7')
+------------------------------------------------------------------------------------------------------------------------------------------------------------  
+------------------------------------------------------------------------------------------------------------------------------------------------------------  
+xplog.model = lm
+torch.save(filename, xplog)
+xplog.model = nn.Serial(lm)
+xplog.model:mediumSerial()
 ------------------------------------------------------------------------------------------------------------------------------------------------------------  
 ------------------------------------------------------------------------------------------------------------------------------------------------------------  
 cost_before_acc = {}
@@ -338,19 +346,19 @@ while epoch <= opt.maxepoch +  opt.maxepochHessian do
       if torch.norm(gradParameters) < opt.gradNormThresh then
 	      -- First iteration method
 	      if opt.iterationMethod =="power" then
-	 	 maxEigValH, v, converged1 = hessianPowermethodRNN(inputs,targets,parameters:clone(),gradParameters:clone(),opt.iterMethodDelta, lm)
+	 	 maxEigValH, v, converged1 = hessianPowermethodRNN(inputs,targets,parameters:clone(),opt.iterMethodDelta, lm)
 	      end
 	      if opt.iterationMethod =="lanczos" then
-		 maxEigValH, v, converged1 = lanczosRNN(inputs,targets,parameters:clone(),gradParameters:clone(),opt.iterMethodDelta, lm)
+		 maxEigValH, v, converged1 = lanczosRNN(inputs,targets,parameters:clone(),opt.iterMethodDelta, lm)
 	      end
 	      convergeTable1[#convergeTable1+1] = converged1
 	      eigenTable[#eigenTable+1] = maxEigValH
 	      -- Second iteration method
 	      if opt.iterationMethod =="power" then  
-		 minEigValH, v, converged2 = negativePowermethodRNN(inputs,targets,parameters:clone(),gradParameters:clone(),opt.iterMethodDelta,maxEigValH, lm)
+		 minEigValH, v, converged2 = negativePowermethodRNN(inputs,targets,parameters:clone(),opt.iterMethodDelta,maxEigValH, lm)
 	      end
 	      if opt.iterationMethod =="lanczos"  then 
-		 minEigValH, v, converged2 = negativeLanczosRNN(inputs,targets,parameters:clone(),gradParameters:clone(),opt.iterMethodDelta,maxEigValH, lm)
+		 minEigValH, v, converged2 = negativeLanczosRNN(inputs,targets,parameters:clone(),opt.iterMethodDelta,maxEigValH, lm)
 	      end
 	      convergeTable2[#convergeTable2+1] = converged2
 	      eigenTableNeg[#eigenTableNeg+1] = minEigValH
