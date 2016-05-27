@@ -44,7 +44,8 @@ function hessianPowermethodAE(inputs, param, delta, filepath, modelpath)
 
         rGradParameters:div(inputs:size(1))
 
-        local Hd:copy(rGradParameters)
+        local Hd
+        Hd:copy(rGradParameters)
         local norm_Hd = torch.norm(Hd)
         lambda = torch.dot(d, Hd)
         diff = torch.norm(d*lambda - Hd) --TODO: comment this out
@@ -104,7 +105,8 @@ function negativePowermethodAE(inputs, param, delta, filepath, modelpath, maxEig
 
         rGradParameters:div(inputs:size(1))
 
-        local Hd:copy(rGradParameters)
+        local Hd
+        Hd:copy(rGradParameters)
         local norm_Hd = torch.norm(Hd)
 
         local Md = d*maxEigValH - Hd
