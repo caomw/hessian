@@ -4,7 +4,7 @@ require 'paths'
 mnist = {}
 
 mnist.path_remote = 'https://s3.amazonaws.com/torch7/data/mnist.t7.tgz'
-mnist.path_dataset = '/Users/yutaro/Research/spring2016/Hessian/data/mnist.t7'
+mnist.path_dataset = '/home/yutaro/hessian/data/mnist.t7'
 --mnist.path_trainset = paths.concat(mnist.path_dataset, 'train_32x32.t7')
 --mnist.path_trainset = paths.concat(mnist.path_dataset, 'train_10x10.t7')
 mnist.path_trainset = paths.concat(mnist.path_dataset, 'train_28x28.t7')
