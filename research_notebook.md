@@ -626,3 +626,6 @@ Also
 
 - Test rop.lua from https://github.com/cswhjiang/nn/blob/rop/doc/rop.md
 
+#2016/05/26
+
+- Was implementing sparse initialization (Martens 2010). But after much struggles, I found someone else has done it: https://github.com/Kaixhin/nninit

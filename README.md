@@ -128,3 +128,8 @@ To do: change f(thing) - f(ff) -> f(theta+eps) - f(theta-eps) / 2eps
 2016/05/25
 
 01:00 Prepared R-op module to compute Hv more accurately than the finite difference method.
+
+2016/05/26
+
+03:00 Implementing sparse weight initialization (nn.CustomLinear)
+
