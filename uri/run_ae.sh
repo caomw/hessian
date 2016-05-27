@@ -9,7 +9,7 @@ script_dir_path=$(dirname $(readlink -f $0))
 
 cd $filename
 
-th ${script_dir_path}/../../src/train_mnist_AE_cuda.lua -batchSize 200 -coefL2 0 -learningRate .05 -batchSizeHessian 1000 -maxEpoch 4000  -maxEpochHessian 50 -full  -hessian -lineSearch -currentDir ${script_dir_path}/../../src -gradNormThresh 3.0 -hessianMultiplier 10 -iterMethodDelta 10e-10 -iterationMethod power  -modelpath /models/mnist_big_AE_model.lua 
+th ${script_dir_path}/../../src/train_mnist_AE_cuda.lua -batchSize 200 -coefL2 0.0 -learningRate .05 -batchSizeHessian 1000 -maxEpoch 4000  -maxEpochHessian 50 -full  -hessian -lineSearch -currentDir ${script_dir_path}/../../src -gradNormThresh 3.0 -hessianMultiplier 10 -iterMethodDelta 10e-10 -iterationMethod power  -modelpath /models/mnist_big_AE_model.lua 
 
 
 mkdir img
