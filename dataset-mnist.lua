@@ -7,10 +7,12 @@ mnist.path_remote = 'https://s3.amazonaws.com/torch7/data/mnist.t7.tgz'
 mnist.path_dataset = '/home/yutaro/hessian/data/mnist.t7'
 --mnist.path_trainset = paths.concat(mnist.path_dataset, 'train_32x32.t7')
 --mnist.path_trainset = paths.concat(mnist.path_dataset, 'train_10x10.t7')
-mnist.path_trainset = paths.concat(mnist.path_dataset, 'train_28x28.t7')
+mnist.path_trainset = paths.concat(mnist.path_dataset, 'train_28x28original.t7')
+--mnist.path_trainset = paths.concat(mnist.path_dataset, 'train_28x28uri.t7')
 --mnist.path_testset = paths.concat(mnist.path_dataset, 'test_32x32.t7')
 --mnist.path_testset = paths.concat(mnist.path_dataset, 'test_10x10.t7')
-mnist.path_testset = paths.concat(mnist.path_dataset, 'test_28x28.t7')
+mnist.path_testset = paths.concat(mnist.path_dataset, 'test_28x28original.t7') 
+--mnist.path_testset = paths.concat(mnist.path_dataset, 'test_28x28uri.t7') 
 
 function mnist.download()
    if not paths.filep(mnist.path_trainset) or not paths.filep(mnist.path_testset) then
@@ -75,9 +77,12 @@ function mnist.loadDataset(fileName, maxLoad)
    local labelvector = torch.zeros(10)
 
    setmetatable(dataset, {__index = function(self, index)
+                 --print(index)
                  local input = self.data[index]
                  local class = self.labels[index]
                  local label = labelvector:zero()
+                 --print(class)
+                 --print(label)
                  label[class] = 1
                  local example = {input, label}
                                        return example

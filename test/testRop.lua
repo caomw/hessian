@@ -3,7 +3,7 @@ require 'rop'
 
 local input_size = 1000
 local target_size = 1000
-local hidden_size = 1000
+local hidden_size = 100
 local mini_batch_size = 10
 
 local input = torch.randn(mini_batch_size, input_size)
@@ -11,6 +11,10 @@ local target = torch.ceil(torch.rand(mini_batch_size)*target_size)
 
 local model = nn.Sequential()
    model:add(nn.Linear(input_size, hidden_size))
+   model:add(nn.Sigmoid())
+   model:add(nn.Linear(hidden_size, hidden_size))
+   model:add(nn.Sigmoid())
+   model:add(nn.Linear(hidden_size, hidden_size))
    model:add(nn.Sigmoid())
    model:add(nn.Linear(hidden_size, target_size))
    model:add(nn.LogSoftMax())

@@ -55,6 +55,7 @@ local opt = lapp[[
    --lineSearch                             turn on lineSearch 
    -- max_grad_norm  (default 1)
    -- clipGrad (default false)
+   --mu_max (default 0.9)                   for momentum scheduling
 ]]
 torch.save("parameter_info.bin",opt)
 
@@ -62,8 +63,9 @@ local dataset_filepath =  opt.currentDir .. '/dataset-mnist.lua'
 --print(dataset_filepath)
 dofile(dataset_filepath)
 
-local iterationMethods_filepath = opt.currentDir .. '/iterationMethods_AE_cuda.lua'
-dofile(iterationMethods_filepath)
+--local iterationMethods_filepath = opt.currentDir .. '/iterationMethods_AE_cuda.lua'
+--dofile(iterationMethods_filepath)
+
 
 local update_filepath = opt.currentDir .. '/update.lua'
 dofile(update_filepath)
@@ -106,13 +108,19 @@ else
    model = torch.load(opt.network)
 end
 
+
 -- retrieve parameters and gradients
+
 parameters,gradParameters = model:getParameters()
 
--- verbose
+param,gradParam = model:parameters()
+
+-- verbose 
 print('<mnist> using model:')
 print(model)
 print(parameters:size())
+
+print(param)
 ----------------------------------------------------------------------
 -- loss function: MSE
 
@@ -269,13 +277,20 @@ function trainSGD(dataset)
          print(' - nb of function evalutions: ' .. lbfgsState.funcEval)
 
       elseif opt.optimization == 'SGD'  then
-	 -- Perform SGD step:
-	 sgdState = sgdState or {
-	    learningRate = opt.learningRate,
-	    momentum = opt.momentum,
-	    learningRateDecay = 2e-6
-	 }
-	 _, fs = optim.sgd(feval, parameters, sgdState)
+    	 -- Perform SGD step:
+	     sgdState = sgdState or {
+	         learningRate = opt.learningRate,
+	         momentum = opt.momentum,
+	         learningRateDecay = 2e-6
+	     }
+         if epoch == 3000 then 
+             sgdState.learningRate = sgdState.learningRate/10 
+             local filename = paths.concat(opt.save, 'mnistAE_epoch3000.net')
+             local modelParam, _ = model:clone():getParameters()
+             torch.save(filename, modelParam)
+         end
+         sgdState.momentum =  math.min(1 - math.pow(2,-1-math.log(torch.floor(epoch / 250) + 1)/math.log(2)), opt.mu_max)
+	     _, fs = optim.sgd(feval, parameters, sgdState)
          currentLoss = currentLoss + fs[1]
          -- disp progress
          xlua.progress(t, dataset:size())
