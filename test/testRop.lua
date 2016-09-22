@@ -1,19 +1,19 @@
 require 'nn'
 require 'rop'
 
-local input_size = 1000
-local target_size = 1000
-local hidden_size = 100
+local input_size = 10
+local target_size = 10
+local hidden_size = 10
 local mini_batch_size = 10
 
 local input = torch.randn(mini_batch_size, input_size)
 local target = torch.ceil(torch.rand(mini_batch_size)*target_size)
-
+   
 local model = nn.Sequential()
    model:add(nn.Linear(input_size, hidden_size))
    model:add(nn.Sigmoid())
-   model:add(nn.Linear(hidden_size, hidden_size))
-   model:add(nn.Sigmoid())
+--   model:add(nn.Linear(hidden_size, hidden_size))
+--   model:add(nn.Sigmoid())
    model:add(nn.Linear(hidden_size, hidden_size))
    model:add(nn.Sigmoid())
    model:add(nn.Linear(hidden_size, target_size))
@@ -21,10 +21,14 @@ local model = nn.Sequential()
 --local criterion = nn.MSECriterion()
 local criterion = nn.ClassNLLCriterion()
 
+print(model)
 -- We must collect the parameters, which also creates storage to store the
 -- vector we will multiply with the Hessian, and to store the result (which the
 -- R-op applied to the parameters).
 local parameters, gradParameters, rParameters, rGradParameters = model:getParameters()
+
+local aa,bb,cc,dd = model:parameters()
+print(aa)
 parameters:randn(parameters:size()) 
 
 
@@ -65,9 +69,9 @@ print('Time elapsed for rop: ' .. timer:time().real .. ' seconds')
 
 -- The R-op applied to the parameters now contains the Hessian times the value
 -- of rParameters
---print(rGradParameters)
+print(rGradParameters)
 
---print(Hd)
+print(Hd)
 
 print(torch.norm(torch.abs(rGradParameters) - torch.abs(Hd)))
 print(Hd:size())

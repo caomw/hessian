@@ -69,19 +69,44 @@ end
 -- Container
 local Container = nn.Container
 
-function Container:parameters()
-    local rval = {}
-    for i=1,#self.modules do
-        local values = {self.modules[i]:parameters()}
-        for j = 1, #values do
-           if not rval[j] then rval[j] = {} end
-           for k = 1, #values do
-              rval[j][#rval[j] + 1] = values[j][k]
-           end
-        end
-    end
-    return unpack(rval)
-end
+--function Container:parameters()
+--    local rval = {}
+--    for i=1,#self.modules do
+--        local values = {self.modules[i]:parameters()}
+--        for j = 1, #values do
+--           if not rval[j] then rval[j] = {} end
+--           for k = 1, #values do
+--              rval[j][#rval[j] + 1] = values[j][k]
+--           end
+--        end
+--    end
+--    return unpack(rval)
+--end
+
+function Container:parameters()                                                                                                                                                        local function tinsert(to, from)                                                                                                                                               
+        if type(from) == 'table' then                                                                                                                                              
+            for i=1,#from do                                                                                                                                                       
+                tinsert(to,from[i])                                                                                                                                                
+            end                                                                                                                                                                    
+        else                                                                                                                                                                       
+            table.insert(to,from)                                                                                                                                                  
+        end                                                                                                                                                                        
+    end                                                                                                                                                                            
+    local w = {}                                                                                                                                                                   
+    local gw = {}                                                                                                                                                                  
+    local rw = {}                                                                                                                                                                  
+    local rgw = {}                                                                                                                                                                 
+    for i=1,#self.modules do                                                                                                                                                       
+        local mw,mgw,mrw,mrgw = self.modules[i]:parameters()                                                                                                                       
+        if mw then                                                                                                                                                                 
+            tinsert(w,mw)                                                                                                                                                          
+            tinsert(gw,mgw)                                                                                                                                                        
+            tinsert(rw,mrw)                                                                                                                                                        
+            tinsert(rgw,mrgw)                                                                                                                                                      
+        end                                                                                                                                                                        
+    end                                                                                                                                                                            
+    return w,gw,rw,rgw                                                                                                                                                             
+end  
 
 -- The Sequential module
 local Sequential = nn.Sequential
