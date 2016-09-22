@@ -1,7 +1,4 @@
-#hessian
-Experiments on computationally efficient algorithm for non-convex optimization
-
-Log:
+# Log:
 
 2016/02/20: 02:00  setting up. test powermethod.
 
@@ -132,4 +129,5 @@ To do: change f(thing) - f(ff) -> f(theta+eps) - f(theta-eps) / 2eps
 2016/05/26
 
 03:00 Implementing sparse weight initialization (nn.CustomLinear)
+
 
